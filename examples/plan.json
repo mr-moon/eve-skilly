@@ -1,0 +1,26 @@
+{
+  "name": "Kestrel · первый вылет",
+  "goals": [
+    {
+      "id": 3330,
+      "level": 5
+    },
+    {
+      "id": 3321,
+      "level": 4
+    },
+    {
+      "id": 3402,
+      "level": 4
+    }
+  ],
+  "attributes": [
+    20,
+    20,
+    19,
+    20,
+    20
+  ],
+  "remap_count": 2,
+  "optimize_implants": true
+}

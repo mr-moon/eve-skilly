@@ -1,0 +1,68 @@
+[
+  {
+    "id": 72238,
+    "name": "Basic 'Boost' Cerebral Accelerator",
+    "bonus": 2.0,
+    "base_hours": 48.0,
+    "requirements": []
+  },
+  {
+    "id": 72239,
+    "name": "Standard 'Boost' Cerebral Accelerator",
+    "bonus": 4.0,
+    "base_hours": 96.0,
+    "requirements": []
+  },
+  {
+    "id": 72240,
+    "name": "Advanced 'Boost' Cerebral Accelerator",
+    "bonus": 6.0,
+    "base_hours": 144.0,
+    "requirements": []
+  },
+  {
+    "id": 72241,
+    "name": "Specialist 'Boost' Cerebral Accelerator",
+    "bonus": 8.0,
+    "base_hours": 192.0,
+    "requirements": []
+  },
+  {
+    "id": 72242,
+    "name": "Expert 'Boost' Cerebral Accelerator",
+    "bonus": 10.0,
+    "base_hours": 240.0,
+    "requirements": []
+  },
+  {
+    "id": 77919,
+    "name": "Genius 'Boost' Cerebral Accelerator",
+    "bonus": 12.0,
+    "base_hours": 288.0,
+    "requirements": []
+  },
+  {
+    "id": 55826,
+    "name": "Expert Cerebral Accelerator",
+    "bonus": 8.0,
+    "base_hours": 300.0,
+    "requirements": [
+      {
+        "id": 3402,
+        "level": 1
+      }
+    ]
+  },
+  {
+    "id": 48582,
+    "name": "Master-at-Arms Cerebral Accelerator",
+    "bonus": 10.0,
+    "base_hours": 24.0,
+    "requirements": [
+      {
+        "id": 3402,
+        "level": 1
+      }
+    ]
+  }
+]

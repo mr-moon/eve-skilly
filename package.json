@@ -1,0 +1,13 @@
+{
+  "name": "skilly-desktop",
+  "version": "0.10.10",
+  "private": true,
+  "scripts": {
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build --bundles nsis",
+    "test:ui": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.0"
+  }
+}

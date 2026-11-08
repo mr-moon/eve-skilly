@@ -1,0 +1,12 @@
+/target/
+/data/
+/node_modules/
+/src-tauri/gen/
+/src-tauri/target/
+/.env
+/.env.*
+!/.env.example
+
+/.remember/
+/assets/icon-candidates/
+/docs/ui-*.png

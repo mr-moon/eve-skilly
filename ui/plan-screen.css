@@ -1,0 +1,304 @@
+/* The plan is the application. Keep its queue on screen while editing inputs. */
+.plan-sidebar .settings-section>h2{margin-bottom:7px}.plan-sidebar .settings-grid>.settings-section>p.muted-note:not(#remap-summary){display:none}.plan-sidebar .settings-grid{gap:13px}.plan-sidebar .plan-costs{padding-bottom:12px;margin-bottom:14px}.plan-sidebar .optimization-settings{margin-bottom:12px}.plan-sidebar .optimization-settings>h2{display:none}
+body{overflow:hidden}#workspace{display:block;height:100dvh;min-height:0}.editor-page{height:100%;display:flex;flex-direction:column}.editor-header{padding:12px 20px 6px;gap:20px;flex-shrink:0}.plan-kicker{min-height:17px;font-size:9px;letter-spacing:1px}.plan-name{font-size:21px;padding:3px 0}.editor-actions{align-items:center}.editor-actions button,.export-menu>summary{padding:8px 11px;font-size:12px}.context-bar{padding:4px 20px 10px;gap:12px;flex-shrink:0}.context-bar select{font-size:12px;padding:6px 9px}.context-bar .draft-state{width:auto;margin-left:auto}.plan-layout{display:grid;grid-template-columns:minmax(0,1fr)330px;flex:1;min-height:0}.plan-queue{min-width:0;min-height:0;display:flex;flex-direction:column;padding:0 0 0 0}.plan-toolbar{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;flex-shrink:0}.route-primary-actions{display:flex;gap:8px;flex-wrap:wrap}.route-primary-actions button{font-size:12px;padding:8px 12px}.route-actions{margin:0}.queue-controls{gap:10px}.segmented button{font-size:10px;padding:5px 8px}.queue-controls .check{font-size:11px}.queue-card{border:0;border-top:1px solid var(--line);border-radius:0;flex:1;min-height:0;display:flex;flex-direction:column}.attribute-distribution{padding:8px 16px;flex-shrink:0}.table-scroll{max-height:none;min-height:0;flex:1}.skill-table th{padding:11px 12px}.skill-table td{padding:10px 12px}.skill-table .skill-name-cell{font-size:13px}.skill-table .skill-column{width:100%}.skill-marker{top:11px;bottom:11px}.plan-sidebar{overflow:auto;border-left:1px solid var(--line);background:var(--surface);padding:16px;min-height:0;scrollbar-width:thin}.plan-sidebar .optimization-settings{border:0;border-radius:0;margin:0 0 18px;background:none}.optimization-settings>h2{font-size:14px;margin:0 0 14px}.settings-grid{display:flex;flex-direction:column;gap:17px;padding:0}.settings-section h2{font-size:12px;margin-bottom:9px}.settings-section .muted-note{font-size:10px;line-height:1.6;margin-top:7px}.settings-section input[type=number]{padding:7px;width:65px}.setting-row{font-size:12px}.attributes-settings{padding-top:12px}.attributes-settings summary{font-size:11px}.check{font-size:11px}.plan-costs{padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line)}.book-cost-panel{gap:4px;margin:0 0 9px}.book-cost-panel strong{font-size:16px}.book-cost-panel small{font-size:10px}.cost-actions{display:flex;justify-content:space-between;gap:10px}.cost-actions button{font-size:11px}.plan-goals .input-card{border:0;border-radius:0;background:none;padding:16px 0;border-top:1px solid var(--line)}#manual-input{display:block}#manual-input h2{font-size:13px;margin-bottom:10px}#manual-input input{font-size:12px}.manual-skill-actions{gap:7px}.manual-skill-actions button,.manual-skill-actions select{font-size:12px;padding:7px}.targets-card{border:0;border-radius:0}.goals-intro{padding:12px 0 6px;gap:6px}.goals-intro strong{font-size:13px}.goals-intro>span{display:none}.shared-note{font-size:10px;padding:0 0 10px}.goals-scroll{padding:0}.goal-row{min-height:64px;flex-wrap:wrap;padding:10px 0;gap:3px}.goal-number{width:22px}.goal-info{flex-basis:calc(100% - 30px)}.goal-info strong{font-size:12px}.goal-info small{font-size:10px}.goal-row .icon-button:first-of-type{margin-left:22px}.goal-row select{width:58px;padding:5px;margin-left:auto;font-size:12px}.goal-row .icon-button{padding:4px 7px}.group-context{padding:12px;margin:0 0 14px;gap:8px}.group-context button{font-size:11px}.group-context>span{flex-basis:100%}.group-context strong{font-size:12px}.plan-sidebar #demo{font-size:11px;margin:16px 0 0}#method-section{font-size:10px;padding:10px 16px;margin:0;border-top:1px solid var(--line);flex-shrink:0}#method{max-height:90px;overflow:auto;margin-top:7px;font-size:10px}.route-state{padding:9px 16px;font-size:11px;border-radius:0;border:0;border-top:1px solid #4c402b;margin:0;flex-shrink:0}.plan-footer{height:28px;flex-shrink:0;display:flex;justify-content:space-between;gap:15px;padding:6px 16px;border-top:1px solid var(--line);font-size:10px;color:var(--quiet)}.empty-queue{padding:55px 20px}.empty-queue h1{font-size:22px}.empty-queue p{font-size:13px}.library-page .page-header h1,.characters-page h1{font-size:26px}.library-page .page-header p{font-size:12px}.library-page .resume-card{padding:12px 16px;margin:18px 0}.library-page .resume-card small{display:none}.library-page .resume-card strong{font-size:14px;margin:0}.library-page .resume-card span>span{font-size:11px}.library-page .library-toolbar{margin:20px 0 16px}.library-page .library-hint{font-size:11px}.library-page .page-header{flex-direction:row;align-items:center}#fit-dialog{width:min(620px,94vw)}#fit-dialog .add-section h2{display:none}#fit-dialog .add-section>p{margin-top:12px}#fit-dialog textarea{min-height:230px;font:12px/1.6 Consolas,monospace}#fit-dialog .add-section small{display:block;margin-top:12px;font-size:11px;color:var(--muted)}#characters-dialog #characters-list{display:grid;gap:12px;margin:20px 0}#characters-dialog #sso-settings{margin-top:20px}#characters-dialog #sso-settings summary{font-size:13px}
+@media(min-width:1600px){.plan-layout{grid-template-columns:minmax(0,1fr)360px}.editor-header{padding-top:14px}.skill-table td{padding-top:12px;padding-bottom:12px}}
+@media(max-width:1100px){.plan-layout{grid-template-columns:minmax(0,1fr)300px}.editor-header{padding:10px 16px 5px}.context-bar{padding:4px 16px 10px}.plan-name{font-size:19px}.editor-actions{gap:6px}.editor-actions button,.export-menu>summary{font-size:11px;padding:7px 9px}.plan-toolbar{gap:8px;padding:10px 12px}.route-primary-actions button{padding:7px 10px;font-size:11px}.goal-row .icon-button:first-of-type{margin-left:22px}.skill-table.compact{min-width:420px}}
+@media(max-width:800px){.editor-header{flex-wrap:nowrap;gap:10px}.editor-actions{flex-wrap:wrap;justify-content:flex-end;max-width:290px}.editor-actions button{font-size:10px}.plan-heading{min-width:150px}.plan-name{font-size:17px}.context-bar{flex-wrap:nowrap;gap:8px}.context-bar>span:not(.draft-state){display:none}.context-bar .draft-state{font-size:9px}.context-bar select{max-width:220px}.plan-layout{grid-template-columns:minmax(0,1fr)270px}.plan-sidebar{padding:12px}.cost-actions{flex-direction:column;gap:3px}.skill-table.compact{min-width:370px}.plan-footer>span:last-child{display:none}.table-scroll{overflow:auto}.library-page .page-header{flex-wrap:wrap}.characters-page .dialog-header{flex-wrap:wrap}}
+
+/* Editable target levels: five segments, with a dedicated reorder handle. */
+.plan-sidebar .goal-row{display:grid;grid-template-columns:24px minmax(0,1fr)24px;gap:3px 8px;padding:12px 0;min-height:76px;position:relative}
+.goal-drag-handle{grid-column:1;grid-row:1/3;align-self:stretch;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;padding:0!important;border:0;background:none;color:var(--quiet);cursor:grab;touch-action:none;user-select:none;border-radius:4px}
+.goal-drag-handle>span{font-size:20px;line-height:1}.goal-drag-handle>small{font-size:9px}.goal-drag-handle:hover{color:var(--text);background:var(--hover);border:0}.goal-drag-handle:active{cursor:grabbing}.goal-drag-handle:disabled{cursor:default}
+.plan-sidebar .goal-info{grid-column:2;grid-row:1;min-width:0}.plan-sidebar .goal-info strong{font-size:12px}.plan-sidebar .goal-info small{font-size:10px;margin-top:4px}
+.goal-levels{grid-column:2;grid-row:2;display:flex;align-items:center;gap:1px;justify-self:start}
+button.goal-level{display:grid;place-items:center;width:23px;height:27px;padding:4px 2px;border:0;border-radius:4px;background:transparent;position:relative}
+button.goal-level::after{content:'';display:block;width:18px;height:7px;border-radius:2px;background:#384244}
+button.goal-level.filled::after{background:#82bbae}button.goal-level:hover:not(:disabled){background:var(--hover)}button.goal-level:hover:not(:disabled)::after{background:#b8e1d6}button.goal-level[aria-pressed=true]::after{box-shadow:0 0 0 1px #b5ded1}button.goal-level:disabled{opacity:.5;cursor:not-allowed}
+.plan-sidebar .goal-row .goal-remove{grid-column:3;grid-row:1/3;margin:0!important;align-self:center;padding:5px!important}
+.goal-row.dragging{opacity:.45}.goal-row.drop-before::before,.goal-row.drop-after::after{content:'';position:absolute;left:0;right:0;height:2px;background:var(--accent);pointer-events:none;z-index:2}.goal-row.drop-before::before{top:-1px}.goal-row.drop-after::after{bottom:-1px}
+
+/* Keep library actions in place; only the saved-plan list scrolls. */
+#library-dialog[open]{display:flex;flex-direction:column;height:88dvh;max-height:88dvh;overflow:hidden}
+#library-dialog> :not(#library-list){flex-shrink:0}
+#library-dialog #library-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;align-content:start;grid-auto-rows:max-content;padding:4px 6px 4px 4px;scrollbar-width:thin}
+#library-dialog .library-hint{margin-top:12px}
+.plan-sidebar .fit-input{border-bottom:1px solid var(--line);padding:0 0 14px;margin:0 0 16px}
+.plan-sidebar .fit-input>summary{font-size:13px;font-weight:600;cursor:pointer;padding:3px 0}
+.plan-sidebar .fit-input>p{font-size:11px;margin-top:12px}
+.plan-sidebar .fit-input .field-label{font-size:11px;margin-top:12px}
+.plan-sidebar .fit-input textarea{font:11px/1.6 Consolas,monospace;min-height:150px}
+.plan-sidebar .fit-input #parse-eft{font-size:11px;padding:8px}
+.plan-sidebar .fit-input>small{display:block;font-size:10px;margin-top:10px}
+#library-list button.saved-plan-row{width:100%;text-align:left;font-weight:400;white-space:normal;cursor:pointer}
+#library-list button.saved-plan-row:hover{background:var(--raised);border-color:#536b65}
+#library-list button.saved-plan-row:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.acceleration-details{margin:20px 0;color:var(--muted);font-size:12px}.acceleration-details .acceleration-cards{color:var(--text)}
+
+
+
+/* A single summary strip with consistent label, value and note baselines. */
+.route-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin:0;padding:8px;border-radius:0;border-left:0;border-right:0;align-items:stretch}
+.route-summary>.summary-metric{appearance:none;display:grid;grid-template-rows:14px 28px 16px;align-content:start;align-items:center;justify-items:start;gap:3px;grid-column:auto;min-width:0;width:100%;margin:0;padding:6px 12px;border:0;border-left:1px solid var(--line);border-radius:0;background:none;text-align:left;font-weight:400}
+.route-summary>.summary-metric:first-child{border-left:0}
+.route-summary .metric-label{font-size:10px;font-weight:500;letter-spacing:0;color:var(--muted);white-space:nowrap}
+.route-summary>.summary-metric>strong,.route-summary #top-saving{display:block;max-width:100%;font-size:clamp(16px,1.65vw,23px);line-height:28px;font-weight:600;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.route-summary>.summary-metric>.summary-note{max-width:100%;min-width:0;font-size:11px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--quiet)}
+.route-summary>.summary-action{cursor:pointer;transition:background .15s}
+.route-summary>.summary-action:hover:not(:disabled){background:var(--raised)}
+.route-summary>.summary-action>strong{color:#8bd0be}
+.route-summary>.summary-action:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+.route-summary .summary-edit{font-size:11px;margin-left:3px;color:var(--accent)}
+@media(max-width:900px){.route-summary{padding:8px 6px}.route-summary>.summary-metric{padding:4px 9px;grid-template-rows:13px 24px 15px}.route-summary>.summary-metric>strong,.route-summary #top-saving{font-size:16px;line-height:24px}.route-summary>.summary-metric>.summary-note{font-size:10px;line-height:15px}.route-summary .metric-label{font-size:10px}}
+
+.skill-table{min-width:1080px}.skill-table .skill-column{width:auto}.skill-table .skill-name-cell{min-width:235px}
+.skill-table .attribute-column{min-width:104px}.skill-table .rate-column{min-width:72px}.skill-table .rank-column{min-width:35px}
+.skill-table .injector-column{min-width:130px;text-align:right;font-variant-numeric:tabular-nums}
+.skill-table th.injector-column{font-size:10px}.injector-column small{display:block;font-size:9px;color:var(--quiet);font-weight:400;margin-top:4px}
+.skill-table td.injector-column{color:#a0d1c3;font-weight:600}
+.plan-sidebar .injector-settings{border-bottom:1px solid var(--line);padding:0 0 16px;margin:0 0 17px}
+.injector-settings>label:not(.check){display:flex;flex-direction:column;gap:7px;font-size:11px;color:var(--muted)}
+.injector-settings select{font-size:11px;padding:7px}.injector-settings .check{margin-top:12px;align-items:flex-start;font-size:11px}
+.injector-advanced{margin-top:12px}.injector-advanced>summary{font-size:11px;color:var(--muted)}
+.injector-advanced>label{display:flex;flex-direction:column;gap:7px;font-size:11px;margin-top:12px}.injector-advanced input{width:100%!important}
+.injector-advanced small{font-size:10px;color:var(--quiet)}.injector-advanced button{font-size:11px;margin-top:8px}
+.booster-scenario dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:16px 0;padding:18px;background:var(--raised);border:1px solid var(--line);border-radius:8px}
+.booster-scenario dl>div{min-width:0}.booster-scenario dt{font-size:11px;color:var(--muted);margin-bottom:9px}.booster-scenario dd{font-size:17px;color:var(--text);margin:0;line-height:1.5}
+@media(max-width:900px){.booster-scenario dl{grid-template-columns:1fr 1fr}}
+
+.route-summary{grid-template-columns:1fr .85fr 1fr 1.1fr 1.6fr}
+.route-summary #book-cost-summary{font-size:clamp(15px,1.45vw,21px)}
+@media(max-width:900px){.route-summary #book-cost-summary{font-size:15px}}
+
+/* Every modal keeps its heading, controls and actions outside one scroll area. */
+dialog{padding:28px;overflow:hidden;max-height:88dvh}
+dialog[open]{display:flex;flex-direction:column}
+dialog.library-dialog[open]{height:88dvh;max-height:88dvh}
+.modal-layout{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.modal-header,.modal-controls,.modal-footer{flex-shrink:0}
+.modal-header{padding-right:40px;margin:0 0 18px}
+.modal-header h1,.modal-header h2{font-size:24px;line-height:1.3;margin:0}
+.modal-header p{font-size:12px;color:var(--muted);line-height:1.6;margin:9px 0 0}
+.modal-controls{margin-bottom:16px}
+.modal-controls>p:last-child{margin-bottom:0}
+.modal-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;padding-right:8px}
+.modal-footer{margin-top:16px}
+.modal-footer .library-hint{font-size:11px;color:var(--muted);line-height:1.6;margin:12px 0 0}
+.name-dialog .modal-scroll{flex:0 1 auto}
+.name-dialog .modal-scroll>p{margin:0}
+.name-dialog .modal-header{margin-bottom:0}
+.name-dialog .modal-footer{flex-wrap:wrap}
+#characters-dialog #characters-list{margin:0;gap:12px}
+#characters-dialog #character-connect{margin:0}
+#characters-dialog #sso-settings{margin:16px 0 0}
+#group-dialog .group-picker{max-height:none;margin:0}
+#group-dialog .modal-controls .field-label{margin-top:0}
+.modal-scroll .acceleration-table-scroll{max-height:none;overflow:visible}
+.modal-scroll .acceleration-table th{position:sticky;top:0;z-index:1;background:var(--surface)}
+.modal-scroll .acceleration-table td:first-child{overflow-wrap:anywhere}
+.modal-scroll>.calculation-notes:first-child{margin-top:0}
+#books-count{margin:12px 0 0;font-size:12px}
+button.modal-close{position:absolute;right:12px;top:12px;z-index:10;width:32px;height:32px;padding:0;border:0;border-radius:6px;background:var(--surface);color:var(--muted);font-size:23px;line-height:1;display:grid;place-items:center;cursor:pointer}
+button.modal-close:hover{background:var(--hover);color:var(--text)}
+#library-dialog .page-header{padding-right:42px}
+.acceleration-status{min-height:20px;margin:10px 0 0;font-size:12px;color:var(--muted)}
+.acceleration-status.acceleration-error{padding:0;color:var(--danger)}
+#acceleration-output.is-pending,#acceleration-output.is-stale{opacity:.6}
+@media(max-width:800px){dialog{padding:22px}.modal-header{padding-right:34px}.modal-header h1,.modal-header h2{font-size:22px}.acceleration-form{gap:10px}.modal-footer{margin-top:12px}}
+/* Shared accordion anatomy for every section in the plan sidebar. */
+.plan-sidebar{padding:0 16px 16px}
+.plan-sidebar .optimization-settings,.plan-sidebar .settings-grid,.plan-sidebar .plan-goals,.plan-sidebar #add-panel{display:contents}
+.plan-sidebar details.sidebar-section{display:block;margin:0;padding:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+.plan-sidebar details.sidebar-section[hidden]{display:none}
+.plan-sidebar details.sidebar-section>summary{display:flex;align-items:center;gap:8px;min-height:46px;margin:0;padding:12px 0;list-style:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);line-height:20px}
+.plan-sidebar details.sidebar-section>summary::-webkit-details-marker{display:none}
+.plan-sidebar details.sidebar-section>summary::before{content:'';width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);margin:0 4px 0 2px;color:var(--quiet);flex-shrink:0}
+.plan-sidebar details.sidebar-section[open]>summary::before{transform:rotate(45deg);margin-top:-4px}
+.plan-sidebar details.sidebar-section>summary:hover{color:var(--accent)}
+.plan-sidebar details.sidebar-section>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+.plan-sidebar .sidebar-section>summary>span:not(#character-name){margin-left:auto;font-size:10px;font-weight:400;color:var(--quiet)}
+.plan-sidebar .sidebar-section-body{padding:0 0 16px}
+.plan-sidebar .sidebar-section-body>p:first-child{margin-top:0}
+.plan-sidebar #character-settings{padding:0;border-bottom:1px solid var(--line)}
+.plan-sidebar #manual-input{padding:0;margin:0}
+.plan-sidebar #add-panel[hidden]{display:none}
+.plan-sidebar .injector-settings .sidebar-section-body>label:not(.check){display:flex;flex-direction:column;gap:7px;font-size:11px;color:var(--muted)}
+.plan-sidebar .fit-input .sidebar-section-body>small{display:block;font-size:10px;margin-top:10px;color:var(--muted)}
+.plan-sidebar .fit-input .sidebar-section-body>p{font-size:11px;margin-top:0}
+.plan-sidebar .attributes-settings #attributes{margin-top:0}
+.plan-sidebar .targets-card .shared-note{margin-top:0}
+.plan-sidebar .group-context{margin:12px 0}
+.plan-sidebar #group-context>summary>span{margin-left:0;font-size:12px;font-weight:600;color:inherit}
+.plan-sidebar #group-context .sidebar-section-body{display:flex;flex-wrap:wrap;gap:8px}
+.plan-sidebar #group-context #group-members-text{flex-basis:100%;font-size:11px;color:var(--muted);line-height:1.6}
+.plan-sidebar .sidebar-section>summary>span:not(#character-name){line-height:20px;padding:0;background:none;border:0}
+.library-dialog .modal-header p{font-size:12px;line-height:1.6;margin:9px 0 0}
+#characters-dialog .modal-controls:has(#character-login-status:empty){display:none}
+/* Keep the parameter strip compact even at the desktop's minimum window size. */
+.acceleration-form label,.acceleration-custom label{min-width:0}
+.acceleration-form input,.acceleration-form select{min-width:0;max-width:100%}
+.acceleration-custom{align-items:end}
+@media(max-width:800px){
+ .acceleration-form{grid-template-columns:2fr 1fr 1.5fr}
+ .acceleration-custom{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+ .acceleration-form label:not(.check){font-size:11px;gap:6px}
+ .acceleration-form input,.acceleration-form select{font-size:11px;padding:7px}
+}
+.acceleration-form{grid-template-columns:minmax(100px,1fr) minmax(140px,1fr) minmax(180px,1.3fr);align-items:start}
+.booster-control-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;padding-top:20px}
+.booster-control-actions button{font-size:11px;padding:7px 10px}
+#acceleration-biology-source{font-size:10px;color:var(--quiet)}
+#acceleration-output tr[data-accelerator-row]{cursor:pointer}
+#acceleration-output tr[data-accelerator-row]:hover{background:var(--hover)}
+#acceleration-output [data-accelerator-id]{border:0;background:none;padding:0;text-align:left;font:inherit;color:inherit;white-space:normal}
+#acceleration-output [data-accelerator-id][aria-pressed=true]{color:var(--accent);font-weight:600}
+#acceleration-output [data-accelerator-id][aria-pressed=true]::before{content:'✓ ';color:var(--accent)}
+#acceleration-output>h3:first-child{margin-top:0}
+.fit-library-tools{display:flex;gap:12px;align-items:center;margin:0 0 14px;flex-wrap:wrap}
+.fit-library-tools .check{margin-left:auto}
+.bound-fit{padding:12px 0;border-bottom:1px solid var(--line)}
+.bound-fit>button{max-width:100%;text-align:left;white-space:normal;font-size:12px}
+.bound-fit>.sidebar-section-body{display:block}
+#fit-editor-name,#pyfa-search,.path-picker input{width:100%}
+#fit-editor-dialog textarea{width:100%;min-height:230px;font:12px/1.6 Consolas,monospace;margin-top:8px}
+.fit-editor-actions{flex-wrap:wrap;gap:8px}.fit-editor-actions button{font-size:11px;padding:8px 10px}
+#pyfa-settings{padding:12px;border:1px solid var(--line);border-radius:8px;margin:0 0 16px}
+#pyfa-settings label{display:block;font-size:11px;margin:14px 0 6px;color:var(--muted)}
+.path-picker{display:flex;gap:8px;margin-bottom:12px}.path-picker input{min-width:0}.path-picker button{flex-shrink:0}
+#pyfa-results{margin:0;display:grid;gap:10px}#pyfa-results button{width:100%;text-align:left;white-space:normal}
+.fit-source-actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.fit-source-actions button{font-size:11px;padding:7px 10px}
+.bound-fit .sidebar-section-body>button{max-width:100%;text-align:left;white-space:normal;font-size:12px}
+.bound-fit .sidebar-section-body>div{display:flex;gap:8px;flex-wrap:wrap}.bound-fit .sidebar-section-body>div button{font-size:11px}
+/* One fit section: view the binding or explicitly enter replacement mode. */
+#fit-input .bound-fit{padding:0;margin:0;border:0}
+#fit-input .bound-fit>button{display:block;max-width:100%;text-align:left;white-space:normal;font-size:12px}
+#fit-input .bound-fit>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#fit-input .bound-fit>div button{font-size:11px;padding:6px 8px}
+#fit-input .bound-fit:has(+ #fit-import-controls:not([hidden])){padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+#fit-import-controls>small{display:block;font-size:10px;margin-top:10px;color:var(--muted)}
+#fit-import-controls>p{font-size:11px;margin-top:0}
+.character-implants>strong{margin-bottom:10px}
+.character-implant{display:flex;align-items:center;gap:9px;margin:7px 0;min-height:32px}
+.implant-icon-slot{display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;background:var(--raised);border-radius:4px;position:relative;overflow:hidden}
+.implant-icon-slot::before{content:'◇';position:absolute;color:var(--quiet);font-size:16px}
+.implant-icon{display:block;width:32px;height:32px;position:relative;object-fit:contain}
+/* Plan-first working surface: one context, one save status and one primary action. */
+.editor-header{display:grid;grid-template-columns:auto minmax(220px,1fr) auto;align-items:center;gap:18px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.editor-header>#library-open{font-size:12px;padding:9px 12px}
+.plan-heading{min-width:0}.plan-title-row{display:flex;align-items:center;gap:12px;min-width:0}
+.plan-title-row .plan-name{width:auto;flex:0 1 500px;min-width:100px;font-size:20px;line-height:1.35;padding:2px 0}
+.plan-title-row .save-state{flex-shrink:0;font-size:10px;line-height:18px;padding:0;border:0;background:none;color:var(--quiet);letter-spacing:0;white-space:nowrap}
+.save-state::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:middle}
+.plan-title-row .save-state[data-state=dirty]{color:var(--warn)}
+.plan-title-row .save-state[data-state=error]{color:var(--danger)}
+.editor-header .context-bar{padding:4px 0 0;gap:0;margin:0;display:flex;min-height:30px}
+.editor-header .context-bar select{max-width:260px;padding:4px 24px 4px 8px;font-size:11px;background:transparent;border-color:transparent;color:var(--muted)}
+.editor-header .context-bar select:hover{background:var(--raised);border-color:var(--line);color:var(--text)}
+.editor-header .editor-actions{display:flex;align-items:center;gap:8px;max-width:none;flex-wrap:nowrap;justify-content:flex-end}
+.editor-header .editor-actions button{font-size:12px;padding:9px 13px;white-space:nowrap}
+.editor-header #export-menu>summary{font-size:22px;line-height:18px;text-align:center;width:34px;padding:9px 0;background:none;border-color:transparent}
+.editor-header #export-menu[open]>summary,.editor-header #export-menu>summary:hover{background:var(--raised);border-color:var(--line)}
+.editor-header .export-options{top:40px}
+.plan-sidebar .training-settings{display:block}
+.plan-sidebar #optimization-settings #plan-panel{display:block}
+.plan-sidebar #optimization-settings .sidebar-section{margin:0;border:0}
+.plan-sidebar #optimization-settings .sidebar-section>summary{min-height:36px;padding:8px 0;font-size:11px;color:var(--muted)}
+.plan-sidebar #optimization-settings .sidebar-section-body{padding-bottom:10px}
+.plan-sidebar .training-settings>.sidebar-section-body{padding-left:10px}
+.plan-sidebar .manual-skill-entry{padding:0 0 12px;margin:0 0 12px;border-bottom:1px solid var(--line)}
+.plan-sidebar .manual-skill-entry input{width:100%;font-size:12px}
+.plan-sidebar #manual-input{display:block}
+.plan-sidebar .targets-card .shared-note{padding:0 0 8px;margin:0;color:var(--quiet)}
+.plan-sidebar #character-sync{font-size:11px;margin:0 0 8px}
+.plan-sidebar #character-info{font-size:10px;color:var(--quiet)}
+#implant-replacement-controls{margin-top:10px}
+@media(max-width:1100px){
+ .editor-header{gap:12px;padding:12px 16px;grid-template-columns:auto minmax(180px,1fr) auto}
+ .plan-title-row{gap:8px;flex-wrap:wrap}.plan-title-row .plan-name{font-size:18px;flex-basis:100%;padding:0}
+ .plan-title-row .save-state{font-size:9px;line-height:12px}
+ .editor-header .editor-actions button{font-size:11px;padding:8px 10px}
+}
+@media(max-width:800px){
+ .editor-header{gap:10px;grid-template-columns:auto minmax(130px,1fr) auto;padding:10px 12px}
+ .editor-header>#library-open{font-size:11px;padding:8px}
+ .plan-title-row .plan-name{font-size:16px}.editor-header .context-bar select{max-width:200px;font-size:10px;padding-left:0}
+ .editor-header .editor-actions{gap:4px}.editor-header .editor-actions button{padding:8px;font-size:10px}
+ .editor-header #export-menu>summary{width:26px}
+}
+.plan-title-row .plan-name{field-sizing:content;flex:0 1 auto;max-width:min(600px,100%)}
+.plan-title-row .save-state{max-width:125px;overflow:hidden;text-overflow:ellipsis}
+/* Section headers remain reachable; the goals and open settings scroll independently. */
+.plan-sidebar{display:flex;flex-direction:column;overflow:hidden}
+.plan-sidebar details.sidebar-section{flex:0 0 auto;min-height:0}
+.plan-sidebar details.sidebar-section>summary{flex-shrink:0}
+.plan-sidebar details.sidebar-section[open]::details-content{display:contents}
+.plan-sidebar .targets-card[open]{display:flex;flex-direction:column;flex:2 1 300px;min-height:min(180px,25dvh);overflow:hidden}
+.plan-sidebar .targets-card>.sidebar-section-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.plan-sidebar .targets-card .manual-skill-entry,.plan-sidebar .targets-card .shared-note{flex-shrink:0}
+.plan-sidebar .targets-card .goals-scroll{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:4px}
+.plan-sidebar #fit-input[open],.plan-sidebar #optimization-settings[open],.plan-sidebar #character-settings[open]{display:flex;flex-direction:column;flex:1 1 220px;min-height:64px;overflow:hidden}
+.plan-sidebar #fit-input>.sidebar-section-body,.plan-sidebar #optimization-settings>.sidebar-section-body,.plan-sidebar #character-settings>.sidebar-section-body{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:6px}
+@media(max-width:1100px){.plan-title-row{flex-wrap:nowrap}.plan-title-row .plan-name{flex-basis:auto;min-width:90px}.plan-title-row .save-state{max-width:100px}}
+/* Shared context control: global plan, pilot selection, pilot settings. */
+.editor-header .character-context-group{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--surface);max-width:100%;height:30px}
+.editor-header .character-context-group button,.editor-header .character-context-group select{border:0;border-radius:0;background:transparent;margin:0;font-size:11px;min-height:0;height:28px;color:var(--muted)}
+.editor-header .character-context-group button{padding:4px 10px;white-space:nowrap}
+.editor-header .character-context-group select{width:150px;max-width:180px;padding:4px 24px 4px 10px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.editor-header .character-context-group button[aria-pressed=true],.editor-header .character-context-group select[data-active=true]{background:var(--raised);color:var(--text)}
+.editor-header .character-context-group button:hover,.editor-header .character-context-group select:hover{background:var(--raised);color:var(--text)}
+.editor-header .character-context-group .character-manage{display:grid;place-items:center;width:32px;padding:0;flex-shrink:0}
+@media(max-width:1100px){.editor-header .character-context-group select{width:110px}.editor-header .character-context-group button{font-size:10px;padding:4px 7px}}
+@media(max-width:800px){.editor-header .context-bar{overflow:visible}.editor-header .character-context-group select{width:92px}.editor-header .character-context-group button{padding:4px 6px}.editor-header .character-context-group .character-manage{width:28px}}
+/* Four distinct segments, with a filled state only on the active mode. */
+.editor-header .character-context-group{position:relative;overflow:visible;background:var(--raised);height:32px;isolation:isolate}
+.editor-header .character-context-group>button{height:30px;outline-offset:2px;border-right:1px solid var(--line);box-shadow:none}
+.editor-header .character-context-group>button:first-child{border-radius:6px 0 0 6px}
+.editor-header .character-context-group>button:last-child{border-right:0;border-radius:0 6px 6px 0}
+.editor-header .character-context-group>button[aria-pressed=true]{background:var(--accent,#69b6aa);color:#102321;font-weight:700}
+.editor-header .character-context-group #character-active{min-width:120px;text-align:left}
+.editor-header .character-context-group #character-picker-toggle{width:32px;display:grid;place-items:center;padding:0}
+.character-picker{position:absolute;z-index:50;left:0;top:calc(100% + 7px);min-width:100%;max-height:280px;overflow:auto;padding:5px;border:1px solid var(--line);border-radius:8px;background:var(--raised);box-shadow:0 12px 30px #0007}
+.editor-header .character-picker button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:20px;text-align:left;height:34px;border:0;border-radius:4px;padding:6px 10px;color:var(--text);background:transparent}
+.editor-header .character-picker button[aria-pressed=true]{background:#69b6aa24;color:var(--accent,#69b6aa)}
+.editor-header .character-picker button:hover{background:#ffffff10}
+@media(max-width:800px){.editor-header .character-context-group #character-active{min-width:88px}.editor-header .character-context-group #character-picker-toggle{width:26px}}
+/* Header menus must paint above sticky queue columns. */
+.editor-header{position:relative;z-index:10}
+/* One header row: title, queue context, then plan actions. */
+.editor-header{display:flex;align-items:center;gap:20px;padding:14px 20px}
+.editor-header .plan-heading{display:flex;align-items:center;gap:20px;flex:1;min-width:0}
+.editor-header .plan-title-row{flex:1;min-width:100px;gap:10px}
+.editor-header .plan-title-row .plan-name{min-width:80px;max-width:100%;font-size:20px}
+.editor-header .context-bar{padding:0;flex:0 0 auto;min-height:0}
+.editor-header .editor-actions{flex:0 0 auto}
+@media(max-width:1100px){
+ .editor-header{gap:10px;padding:12px}.editor-header .plan-heading{gap:10px}
+ .editor-header .plan-title-row{flex-wrap:wrap;gap:2px}.editor-header .plan-title-row .plan-name{font-size:17px}
+ .editor-header .plan-title-row .save-state{font-size:9px}
+ .editor-header .character-context-group #character-active{min-width:78px}
+}
+@media(max-width:800px){
+ .editor-header{flex-wrap:nowrap;gap:6px;padding:10px 8px}.editor-header .plan-heading{gap:7px}
+ .editor-header .plan-title-row .plan-name{font-size:15px;min-width:60px}
+ .editor-header .editor-actions button{font-size:10px;padding:8px 6px}
+ .editor-header .character-context-group #character-active{min-width:65px}
+ .editor-header .character-context-group>button{font-size:9px;padding:4px 5px}
+}
+/* One scrolling sidebar; every section belongs to the same flat list. */
+.plan-sidebar{display:block;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
+.plan-sidebar #optimization-settings,.plan-sidebar #optimization-settings #plan-panel{display:contents}
+.plan-sidebar details.sidebar-section,.plan-sidebar details.sidebar-section[open],.plan-sidebar .targets-card[open],.plan-sidebar #fit-input[open],.plan-sidebar #character-settings[open]{display:block;min-height:0;height:auto;max-height:none;overflow:visible}
+.plan-sidebar details.sidebar-section[open]::details-content{display:block}
+.plan-sidebar .sidebar-section>.sidebar-section-body,.plan-sidebar .targets-card>.sidebar-section-body,.plan-sidebar #fit-input>.sidebar-section-body,.plan-sidebar #character-settings>.sidebar-section-body{display:block;height:auto;max-height:none;overflow:visible;padding-right:0}
+.plan-sidebar .targets-card .goals-scroll{height:auto;max-height:none;overflow:visible;padding-right:0}
+.plan-sidebar #optimization-settings .sidebar-section{margin:0;border:0;border-bottom:1px solid var(--line)}
+.plan-sidebar #optimization-settings .sidebar-section>summary{min-height:46px;padding:12px 0;font-size:12px;color:var(--text)}
+.plan-sidebar #optimization-settings .sidebar-section>.sidebar-section-body{padding:0 0 16px}
+.plan-sidebar .injector-advanced{border:0;margin:12px 0 0}
+/* Saving belongs to the plan title. */
+.editor-header .plan-title-row #save{flex-shrink:0;font-size:12px;padding:8px 12px;white-space:nowrap}
+@media(max-width:1100px){.editor-header .plan-title-row{flex-wrap:nowrap}.editor-header .plan-title-row #save{font-size:10px;padding:7px}}
+.plan-sidebar .attr-row input[readonly]{border-color:transparent;background:transparent;box-shadow:none;color:var(--text);appearance:textfield;cursor:default}
+.plan-sidebar .attr-row input[readonly]::-webkit-inner-spin-button,.plan-sidebar .attr-row input[readonly]::-webkit-outer-spin-button{appearance:none;margin:0}
+.plan-sidebar .attr-row input[aria-invalid=true]{border-color:var(--danger)}
+#attribute-total[data-invalid=true],.plan-sidebar .attribute-error{color:var(--danger)}
+.plan-sidebar .attribute-error{font-size:11px;line-height:1.5;margin:8px 0 0}
