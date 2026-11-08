@@ -1,11 +1,13 @@
 {
   "name": "skilly-desktop",
-  "version": "0.10.10",
+  "version": "0.12.4",
   "private": true,
   "scripts": {
     "desktop:dev": "tauri dev",
-    "desktop:build": "tauri build --bundles nsis",
-    "test:ui": "node --test tests/*.test.cjs"
+    "desktop:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop.ps1",
+    "test:ui": "node --test tests/*.test.cjs",
+    "desktop:build:cached": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop.ps1 -KeepCompilerCache",
+    "clean:builds": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean-builds.ps1 -Deep"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.0"

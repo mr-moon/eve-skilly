@@ -10,7 +10,7 @@ let busy = false, revision = 0, previewTimer, statusTimer;
 let view = 'queue', panel = 'add', scheduleMode = 'optimized', calculatedAt = new Date();
 
 function newPlan() {
-  return { name: 'Новый план', goals: [], attributes: [20,20,19,20,20], remap_count: 1, optimize_implants: true };
+  return { name: 'Новый план', goals: [], attributes: [20,20,19,20,20], remap_count: 1, optimize_implants: true, queue_priority: 'fit_ready' };
 }
 function notify(text, type = 'ok', persistent = false) {
   clearTimeout(statusTimer);
@@ -131,6 +131,7 @@ function updateTotal(){
 function renderControls() {
   attributeDraft=null;
   $('name').value = plan.name;
+  $('queue-priority').value=plan.queue_priority||'fit_ready';
   $('remap-count').value = plan.remap_count ?? 1;
   $('implant-enabled').checked = plan.optimize_implants ?? true;
   $('attributes').innerHTML = attrs.map((name, i) => `<div class="attr-row"><label for="attr-${i}"><span class="attr-code">${codes[i]}</span>${name}</label><input id="attr-${i}" data-attr="${i}" type="number" min="17" max="27" step="1" aria-describedby="attribute-note attribute-error" value="${plan.attributes[i]}" aria-label="${name} база"></div>`).join('');
@@ -192,6 +193,9 @@ function queueEventRow(event) {
 }
 function renderQueue() {
   const schedule = activeSchedule(), rows = schedule?.rows || [], events = scheduleEvents(schedule);
+  syncQueueSelection(schedule,selectedCharacter);
+  const injected=selectedCharacter?(currentCharacter()?.injected_skill_ids||selectedAdaptation()?.character?.injected_skill_ids||[]):[];
+  const books=new Map(queueBookEvents(schedule,injected).map(event=>[event.index,event]));
   const targets = new Map();
   for (const row of rows) targets.set(row.id, Math.max(targets.get(row.id) || 0, row.level));
   $('empty-queue').hidden = rows.length > 0;
@@ -201,14 +205,16 @@ function renderQueue() {
     while (nextEvent < events.length && events[nextEvent].day <= row.start_day + 1e-9) {
       output.push(queueEventRow(events[nextEvent++]));
     }
+    if(books.has(i))output.push(renderBookEvent(books.get(i)));
     const days = row.end_day - row.start_day;
     const rate = days > 0 ? row.points / (days * 24) : 0;
     const rank = items[row.id]?.skill?.rank ?? '—';
     const levels = [1,2,3,4,5].map(level => `<i class="level-block ${level <= row.level ? 'filled' : level <= targets.get(row.id) ? 'future' : ''}"></i>`).join('');
-    output.push(`<tr class="skill-row" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i>${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
+    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i>${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
   }
   while (nextEvent < events.length) output.push(queueEventRow(events[nextEvent++]));
   $('queue').innerHTML = output.join('');
+  paintQueueSelection();paintQueueBookPrices();
   renderTimeline(rows);
 }
 function renderImplantStatus(){
@@ -337,6 +343,7 @@ document.addEventListener('click', event => {
     }
   }
 });
+$('queue-priority').addEventListener('change',()=>{plan.queue_priority=$('queue-priority').value;invalidate();});
 $('implant-enabled').addEventListener('change', () => { plan.optimize_implants = $('implant-enabled').checked; invalidate(); });
 $('add-skill').addEventListener('click', addSkill);
 $('skill-name').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addSkill(); } });
@@ -360,7 +367,7 @@ $('file').addEventListener('change', async () => {
 });
 $('clear').addEventListener('click', startNewPlan);
 action('Открываем локальный план…', async () => {
-  initJourney();initGoalControls();
+  initJourney();initGoalControls();initQueueControls();
   await initPlanLibrary();
   await initCharacters();
   initGroups();

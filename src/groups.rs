@@ -19,6 +19,21 @@ pub struct PlanGroup {
     pub members: Vec<GroupMember>,
 }
 impl PlanGroup {
+    pub fn fit_goals(&self) -> Vec<Requirement> {
+        let mut levels = BTreeMap::<u32, u8>::new();
+        for fit in self.members.iter().filter_map(|m| m.fitting.as_ref()) {
+            for r in &fit.requirements {
+                levels
+                    .entry(r.id)
+                    .and_modify(|level| *level = (*level).max(r.level))
+                    .or_insert(r.level);
+            }
+        }
+        levels
+            .into_iter()
+            .map(|(id, level)| Requirement { id, level })
+            .collect()
+    }
     pub fn goals(&self) -> Result<Vec<Requirement>, String> {
         if self.members.is_empty() || self.members.len() > 100 {
             return Err("Группа должна содержать от 1 до 100 планов".into());
@@ -98,6 +113,7 @@ pub fn compose(
     }
     let group = PlanGroup { members };
     workspace.plan.goals = group.goals()?;
+    workspace.plan.priority_goals = group.fit_goals();
     workspace.plan.name = name.into();
     workspace.group = Some(group);
     workspace.eft.clear();
@@ -114,6 +130,34 @@ mod tests {
         model::{Plan, Skill},
         optimizer,
     };
+    #[test]
+    fn group_fit_priorities_deduplicate_shared_skills_at_the_highest_required_level() {
+        let members = (0..100)
+            .map(|i| GroupMember {
+                fitting: Some(crate::fits::FitSnapshot {
+                    id: format!("fit-{i}"),
+                    name: "Fit".into(),
+                    ship: "Ship".into(),
+                    eft: String::new(),
+                    version: 1,
+                    requirements: vec![Requirement {
+                        id: 3402,
+                        level: if i == 99 { 4 } else { 2 },
+                    }],
+                    source: None,
+                }),
+                id: format!("plan-{i}"),
+                name: "Plan".into(),
+                saved_at: 0,
+                goals: vec![],
+            })
+            .collect();
+        let group = PlanGroup { members };
+        let goals = group.fit_goals();
+        assert_eq!(goals.len(), 1);
+        assert_eq!(goals[0].id, 3402);
+        assert_eq!(goals[0].level, 4);
+    }
     #[test]
     fn group_deduplicates_max_levels_and_refreshes_without_mutating_sources() {
         let dir = std::env::temp_dir().join(format!(

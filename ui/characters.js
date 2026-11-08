@@ -1,14 +1,23 @@
 "use strict";
-let replacementChoices={}, characterRemaps={}, adaptations=[], selectedCharacter=null, characterState={characters:[],login:{}}, characterPoll;
+let replacementChoices={}, characterExtraRemaps={}, characterRemaps={}, adaptations=[], selectedCharacter=null, characterState={characters:[],login:{}}, characterPoll;
 let lastContextCharacter=null;
 function selectedAdaptation(){return adaptations.find(a=>a.character_id===selectedCharacter);}
 function currentCharacter(){return characterState.characters.find(c=>c.id===selectedCharacter)||selectedAdaptation()?.character;}
 function adaptationStale(adaptation=selectedAdaptation()){
   if(!adaptation)return true;
   const current=characterState.characters.find(c=>c.id===selectedCharacter);
-  return (replacementChoices[selectedCharacter]!==undefined && replacementChoices[selectedCharacter]!==adaptation.replace_implants) || adaptation.remap_count!==(characterRemaps[selectedCharacter]??currentCharacter()?.remap_count) || adaptation.source_key!==calculationKey || Boolean(current&&current.fetched_at!==adaptation.snapshot_at);
+  return Boolean(characterExtraRemaps[selectedCharacter])!==Boolean(adaptation.extra_remap) || (replacementChoices[selectedCharacter]!==undefined && replacementChoices[selectedCharacter]!==adaptation.replace_implants) || adaptation.remap_count!==(characterRemaps[selectedCharacter]??currentCharacter()?.remap_count) || adaptation.source_key!==calculationKey || Boolean(current&&current.fetched_at!==adaptation.snapshot_at);
 }
 function displayComparison(){return selectedCharacter ? adaptationStale()?null:selectedAdaptation()?.comparison : result;}
+function renderRemapTradeoff(){
+  const a=selectedAdaptation(),offer=a?.remap_tradeoff,character=currentCharacter();
+  const valid=Boolean(selectedCharacter&&offer&&a.source_key===calculationKey&&a.snapshot_at===character?.fetched_at&&a.remap_count===(characterRemaps[selectedCharacter]??character?.remap_count)&&a.replace_implants===(replacementChoices[selectedCharacter]??a.replace_implants));
+  $('remap-tradeoff').hidden=!valid;
+  $('extra-remap').checked=Boolean(characterExtraRemaps[selectedCharacter]);
+  if(!valid)return;
+  $('remap-tradeoff-note').textContent=`Без дополнительного: ${duration(offer.conservative_days)} · ${offer.conservative_remaps} remap. С ним: ${duration(offer.fastest_days)} · ${offer.fastest_remaps} remap.`;
+  $('extra-remap-saving').textContent=`Потратить ещё один remap · экономия ${duration(offer.saved_days)}`;
+}
 function renderCharacterContext(){
   const select=$('character-view');if(!select||!plan)return;
   const names=new Map(characterState.characters.map(c=>[c.id,c.name]));
@@ -24,6 +33,7 @@ function renderCharacterContext(){
   $('character-settings').hidden=!personal;
   $('implant-replacement-controls').hidden=!personal;
   $('implant-optimization-control').hidden=personal;
+  renderRemapTradeoff();
   $('empty-queue').querySelector('h1').textContent=plan.goals.length?'Очередь обновляется…':'Соберите очередь обучения';
   $('empty-queue').querySelector('p').textContent=plan.goals.length?'Оптимизация запускается автоматически при изменении навыков, персонажа или параметров.':'Вставьте EFT-фит или добавьте навыки. Требования и предыдущие уровни появятся автоматически.';
   $('remap-count').disabled=false;$('implant-enabled').disabled=personal;
@@ -94,6 +104,7 @@ async function initCharacters(){
     if(!selectedCharacter)return;
     characterState=await api('/api/characters/sync',{id:selectedCharacter});renderCharacterList();renderDashboard();
   }));
+  $('extra-remap').addEventListener('change',()=>{characterExtraRemaps[selectedCharacter]=$('extra-remap').checked;renderDashboard();queueDraft();});
   $('remap-reset').addEventListener('click',()=>{delete characterRemaps[selectedCharacter];renderDashboard();queueDraft();});
   $('replace-implants').addEventListener('change',()=>{replacementChoices[selectedCharacter]=$('replace-implants').checked;renderDashboard();queueDraft();});
   $('sso-save').addEventListener('click',()=>action('Сохраняем настройку SSO…',async()=>{

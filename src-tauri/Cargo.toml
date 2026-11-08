@@ -1,6 +1,6 @@
 [package]
 name = "skilly-desktop"
-version = "0.10.10"
+version = "0.12.4"
 edition = "2021"
 description = "Skilly EVE Online skill planner"
 license = "MIT"

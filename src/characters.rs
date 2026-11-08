@@ -93,6 +93,10 @@ pub struct Adaptation {
     pub computed_at: u64,
     pub remap_count: u8,
     pub replace_implants: bool,
+    #[serde(default)]
+    pub extra_remap: bool,
+    #[serde(default)]
+    pub remap_tradeoff: Option<optimizer::RemapTradeoff>,
     pub completed_levels: usize,
     pub character: Value,
     pub comparison: Comparison,
@@ -103,6 +107,23 @@ pub fn adapt(
     skills: &BTreeMap<u32, model::Skill>,
     replace_implants: bool,
     remap_override: Option<u8>,
+) -> Result<Adaptation, String> {
+    adapt_with_remap_choice(
+        plan,
+        snapshot,
+        skills,
+        replace_implants,
+        remap_override,
+        false,
+    )
+}
+pub fn adapt_with_remap_choice(
+    plan: &Plan,
+    snapshot: &CharacterSnapshot,
+    skills: &BTreeMap<u32, model::Skill>,
+    replace_implants: bool,
+    remap_override: Option<u8>,
+    extra_remap: bool,
 ) -> Result<Adaptation, String> {
     let global = plan.clone().start_from_scratch();
     let all_levels = model::jobs(&global, skills)?.len();
@@ -120,7 +141,8 @@ pub fn adapt(
         }
     }
     let remaining = model::jobs(&personal, skills)?.len();
-    let comparison = optimizer::optimize(&personal, skills)?;
+    let (comparison, remap_tradeoff) =
+        optimizer::optimize_personal(&personal, skills, extra_remap)?;
     Ok(Adaptation {
         character_id: snapshot.id,
         character_name: snapshot.name.clone(),
@@ -129,6 +151,8 @@ pub fn adapt(
         computed_at: now_ms(),
         remap_count: personal.remap_count,
         replace_implants,
+        extra_remap,
+        remap_tradeoff,
         completed_levels: all_levels.saturating_sub(remaining),
         character: snapshot.summary(),
         comparison,
@@ -910,7 +934,12 @@ mod tests {
         let protected = adapt(&plan, &pilot, &skills(), false, None).unwrap();
         let replace = adapt(&plan, &pilot, &skills(), true, None).unwrap();
         assert!(replace.comparison.optimized.days < protected.comparison.optimized.days);
-        assert!(replace.comparison.optimized.installations.iter().any(|i| i.purchases[0] == 5));
+        assert!(replace
+            .comparison
+            .optimized
+            .installations
+            .iter()
+            .any(|i| i.purchases[0] == 5));
         assert!(!plan.optimize_implants);
     }
     #[test]

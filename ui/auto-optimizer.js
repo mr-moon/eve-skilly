@@ -7,7 +7,8 @@ function optimizationKey(){
   return JSON.stringify([revision,inputs,selectedCharacter,
     selectedCharacter?currentCharacter()?.fetched_at:null,
     selectedCharacter?characterRemaps[selectedCharacter]??null:null,
-    selectedCharacter?replacementChoices[selectedCharacter]??selectedAdaptation()?.replace_implants??false:false]);
+    selectedCharacter?replacementChoices[selectedCharacter]??selectedAdaptation()?.replace_implants??false:false,
+    selectedCharacter?Boolean(characterExtraRemaps[selectedCharacter]):false]);
 }
 function optimizationMessage(){
   if(typeof attributeInputError==='function'&&attributeInputError())return attributeInputError();
@@ -44,7 +45,7 @@ async function runOptimization(){
       const replace=replacementChoices[task.characterId]??selectedAdaptation()?.replace_implants??false;
       const data=await api('/api/characters/adapt',{
         plan:JSON.parse(JSON.stringify(plan)),character_id:task.characterId,
-        replace_implants:replace,remap_count:characterRemaps[task.characterId]??null
+        replace_implants:replace,remap_count:characterRemaps[task.characterId]??null,extra_remap:Boolean(characterExtraRemaps[task.characterId])
       });
       if(!isCurrent())return;
       items=data.items;

@@ -10,6 +10,7 @@ function isk(value){return `${value.toLocaleString('ru-RU',{maximumFractionDigit
 function bookTotal(report){return report.required&&report.missing===report.required?'Цена неизвестна':`${report.missing?'≥ ':report.required?'≈ ':''}${isk(report.total)}`;}
 function paintBookCosts(){
   if(!bookReport)return;
+  paintQueueBookPrices();
   $('book-cost-summary').textContent=bookTotal(bookReport);
   $('book-cost-note').textContent=`${bookReport.required} ${plural(bookReport.required,['книга','книги','книг'])}${bookReport.missing?` · нет цены для ${bookReport.missing}`:' · Jita 4-4'}`;
   $('books-open').title=`${bookReport.required} книг · ${bookTotal(bookReport)} · Jita 4-4, Fuzzwork sell.percentile${bookReport.missing?` · нет цены для ${bookReport.missing}`:''}`;
@@ -32,6 +33,7 @@ async function fetchBookCosts(refresh=false){
     bookReport=report;paintBookCosts();
   }catch(error){
     if(generation!==bookGeneration||key!==bookContextKey())return;
+    document.querySelectorAll('[data-book-price-id]').forEach(node=>node.textContent='Цена Jita недоступна');
     $('book-cost-summary').textContent='Недоступно';$('book-cost-note').textContent=error.message;$('books-open').title=error.message;
     if($('books-dialog').open){$('books-total').textContent='—';$('books-count').textContent='';$('books-rows').textContent='';$('books-warnings').textContent=error.message;}
   }

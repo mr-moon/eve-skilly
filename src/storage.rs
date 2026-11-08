@@ -39,7 +39,7 @@ pub fn write_json(path: &Path, value: &impl Serialize) -> Result<(), String> {
 pub fn calculation_key(plan: &Plan) -> String {
     let mut value = serde_json::to_value(plan).expect("Plan is serializable");
     value.as_object_mut().unwrap().remove("name");
-    serde_json::to_string(&value).unwrap()
+    format!("optimizer-3:{}", serde_json::to_string(&value).unwrap())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -55,6 +55,8 @@ pub struct Workspace {
     pub adaptations: Vec<crate::characters::Adaptation>,
     pub selected_character: Option<u64>,
     pub character_remaps: std::collections::BTreeMap<u64, u8>,
+    pub character_implant_replacements: std::collections::BTreeMap<u64, bool>,
+    pub character_extra_remaps: std::collections::BTreeMap<u64, bool>,
     pub group: Option<crate::groups::PlanGroup>,
     pub acceleration_settings: std::collections::BTreeMap<String, crate::acceleration::Settings>,
 }
@@ -71,6 +73,8 @@ impl Default for Workspace {
             adaptations: vec![],
             selected_character: None,
             character_remaps: std::collections::BTreeMap::new(),
+            character_implant_replacements: std::collections::BTreeMap::new(),
+            character_extra_remaps: std::collections::BTreeMap::new(),
             group: None,
             acceleration_settings: std::collections::BTreeMap::new(),
         }

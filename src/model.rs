@@ -45,8 +45,23 @@ impl Implant {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QueuePriority {
+    #[default]
+    FitReady,
+    DelayExpensiveBooks,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Plan {
+    #[serde(default)]
+    pub queue_priority: QueuePriority,
+    /// Required fit levels for group members; not additional training goals.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub priority_goals: Vec<Requirement>,
+    #[serde(skip)]
+    pub book_prices: BTreeMap<u32, f64>,
     #[serde(default)]
     pub fitting: Option<crate::fits::FitSnapshot>,
     pub name: String,
@@ -78,6 +93,9 @@ fn default_implant_optimization() -> bool {
 impl Default for Plan {
     fn default() -> Self {
         Self {
+            queue_priority: QueuePriority::default(),
+            priority_goals: vec![],
+            book_prices: BTreeMap::new(),
             fitting: None,
             name: "Новый пилот".into(),
             trained: BTreeMap::new(),

@@ -22,7 +22,6 @@ function renderJourney(){
   $('library-close').hidden=false;
   const fresh=Boolean(displayComparison()),hasGoals=plan.goals.length>0;
   const who=selectedCharacter?currentCharacter()?.name||'персонажа':'общего плана';
-  $('route-context').textContent=fresh?'Оптимизированная очередь':'Автоматическая оптимизация';
   $('route-state').hidden=fresh||!hasGoals;
   $('route-state').textContent=optimizationMessage();
   $('copy-queue').classList.toggle('primary',fresh);

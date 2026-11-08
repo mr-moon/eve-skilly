@@ -39,16 +39,35 @@ function cleanResult(value) {
 }
 function captureWorkspace() {
   return JSON.parse(JSON.stringify({plan,result:cleanResult(result),preview,eft:$('eft').value,
-    calculated_at:calculationKey ? calculatedAt.getTime() : null,calculation_key:calculationKey,schedule_mode:scheduleMode,adaptations,selected_character:selectedCharacter,character_remaps:characterRemaps,group:planGroup,acceleration_settings:accelerationSettings}));
+    calculated_at:calculationKey ? calculatedAt.getTime() : null,calculation_key:calculationKey,schedule_mode:scheduleMode,adaptations,selected_character:selectedCharacter,character_remaps:characterRemaps,character_implant_replacements:replacementChoices,character_extra_remaps:characterExtraRemaps,group:planGroup,acceleration_settings:accelerationSettings}));
 }
 function canonical(value) {
   if(Array.isArray(value)) return value.map(canonical);
   if(value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])]));
   return value;
 }
-function fingerprint(workspace) {
-  return JSON.stringify(canonical({plan:workspace.plan,eft:workspace.eft||'',result:cleanResult(workspace.result),adaptations:workspace.adaptations||[],character_remaps:workspace.character_remaps||{},group:workspace.group||null,acceleration_settings:workspace.acceleration_settings||{}}));
+function workspaceSettings(workspace){
+  const p=workspace.plan||{};
+  // Only user-editable inputs determine unsaved changes; results, snapshots,
+  // timings, market prices and the selected view are background state.
+  const replacements={};
+  for(const adaptation of workspace.adaptations||[])if(adaptation.replace_implants)replacements[adaptation.character_id]=true;
+  for(const [id,replace] of Object.entries(workspace.character_implant_replacements||{})){
+    if(replace)replacements[id]=true;else delete replacements[id];
+  }
+  const defaults={accelerator_id:77919,quantity:1,injector:'large',use_unallocated:true,biology_override:null,total_sp_override:null,custom:null};
+  const acceleration={};
+  for(const [id,value] of Object.entries(workspace.acceleration_settings||{})){
+    const settings={...defaults,...value};
+    if(JSON.stringify(canonical(settings))!==JSON.stringify(canonical(defaults)))acceleration[id]=settings;
+  }
+  return {plan:{name:p.name||'',goals:p.goals||[],attributes:p.attributes||[20,20,19,20,20],remap_count:p.remap_count??1,optimize_implants:p.optimize_implants??true,queue_priority:p.queue_priority||'fit_ready',fitting:p.fitting||null},
+    character_extra_remaps:Object.fromEntries(Object.entries(workspace.character_extra_remaps||{}).filter(([,value])=>value)),
+    eft:workspace.eft||'',character_remaps:workspace.character_remaps||{},character_implant_replacements:replacements,
+    group:workspace.group?{members:workspace.group.members.map(member=>({id:member.id,name:member.name,goals:member.goals,fitting:member.fitting||null}))}:null,
+    acceleration_settings:acceleration};
 }
+function fingerprint(workspace) {return JSON.stringify(canonical(workspaceSettings(workspace)));}
 function isDirty() {
   if(!plan) return false;
   if(!activePlanId && !plan.goals.length && !$('eft').value.trim()) return false;
@@ -92,7 +111,8 @@ function applyWorkspace(workspace,id=null,savedWorkspace=null) {
   saveStateError=null;
   fitReplacement=false;fitInputKey=null;
   resetCalculation(); clearTimeout(draftTimer);
-  replacementChoices={};
+  replacementChoices={...(workspace.character_implant_replacements||{})};
+  characterExtraRemaps={...(workspace.character_extra_remaps||{})};
   accelerationSettings=workspace.acceleration_settings||{};
   planGroup=workspace.group||null;characterRemaps=workspace.character_remaps||{};adaptations=workspace.adaptations||[];selectedCharacter=workspace.selected_character||null;
   plan=workspace.plan||newPlan();result=workspace.result||null;preview=workspace.preview||null;
@@ -165,7 +185,7 @@ async function openSavedPlan(id) {
   if(!await canLeaveDraft('Открыть другой план? В текущем черновике есть изменения, не сохранённые в библиотеку.'))return;
   await action('Открываем сохранённую очередь…',async()=>{
     await settleDraft();const data=await api('/api/plans/open',{id});items=data.items;
-    applyWorkspace(data.record.workspace,data.record.id,data.saved_workspace||data.record.workspace);
+    applyWorkspace(data.record.workspace,data.record.id,data.record.workspace);
     showEditor(editorTab);queueDraft();notify('План открыт');
   });
 }

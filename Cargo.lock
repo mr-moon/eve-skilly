@@ -3673,7 +3673,7 @@ dependencies = [
 
 [[package]]
 name = "skilly-desktop"
-version = "0.10.10"
+version = "0.12.4"
 dependencies = [
  "serde_json",
  "skilly",

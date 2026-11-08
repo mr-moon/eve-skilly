@@ -45,9 +45,31 @@ impl AppService {
         model::jobs(plan, &skills)?;
         Ok((skills, catalog.items.clone()))
     }
+    fn load_priority_prices(
+        &self,
+        plan: &mut Plan,
+        skills: &BTreeMap<u32, Skill>,
+    ) -> Result<(), String> {
+        if plan.queue_priority != model::QueuePriority::DelayExpensiveBooks {
+            return Ok(());
+        }
+        let mut ids: Vec<u32> = model::jobs(plan, skills)?
+            .iter()
+            .map(|j| j.skill.id)
+            .collect();
+        ids.push(model::CYBERNETICS);
+        let report = self.book_prices.quote(&ids, &Default::default(), false)?;
+        plan.book_prices = report
+            .rows
+            .into_iter()
+            .filter_map(|row| row.price.map(|p| (row.id, p)))
+            .collect();
+        Ok(())
+    }
     fn prepare_workspace(&self, mut workspace: Workspace) -> Result<PreparedWorkspace, String> {
         if let Some(group) = &workspace.group {
             workspace.plan.goals = group.goals()?;
+            workspace.plan.priority_goals = group.fit_goals();
         }
         let (skills, items) = self.normalize(&mut workspace.plan)?;
         workspace = workspace.sanitize();
@@ -370,16 +392,20 @@ impl AppService {
                     #[serde(default)]
                     replace_implants: bool,
                     remap_count: Option<u8>,
+                    #[serde(default)]
+                    extra_remap: bool,
                 }
                 let mut input: Input = serde_json::from_value(body).map_err(|e| e.to_string())?;
                 let (skills, items) = self.normalize(&mut input.plan)?;
+                self.load_priority_prices(&mut input.plan, &skills)?;
                 let snapshot = self.characters.snapshot(input.character_id)?;
-                let adaptation = crate::characters::adapt(
+                let adaptation = crate::characters::adapt_with_remap_choice(
                     &input.plan,
                     &snapshot,
                     &skills,
                     input.replace_implants,
                     input.remap_count,
+                    input.extra_remap,
                 )?;
                 Ok(json!({"adaptation":adaptation,"items":items}))
             }
@@ -441,6 +467,7 @@ impl AppService {
                         json!({"schedule":optimizer::preview(&plan,&skills)?,"plan":plan,"items":items,"calculation_key":key}),
                     );
                 }
+                self.load_priority_prices(&mut plan, &skills)?;
                 let mut response = serde_json::to_value(optimizer::optimize(&plan, &skills)?)
                     .map_err(|e| e.to_string())?;
                 response["plan"] = json!(plan);

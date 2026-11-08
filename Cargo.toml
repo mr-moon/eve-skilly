@@ -29,3 +29,12 @@ windows-sys = { version = "0.61", features = ["Win32_Security_Cryptography", "Wi
 [profile.release]
 lto = "thin"
 
+
+# Keep local test/dev artifacts small. Desktop release settings stay unchanged.
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.test]
+debug = 0
+incremental = false

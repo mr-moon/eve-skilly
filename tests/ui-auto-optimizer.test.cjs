@@ -7,7 +7,7 @@ function setup(){
   const requests=[],pending=[],timers=new Map();let nextTimer=0;
   const context=vm.createContext({Date,JSON,setTimeout:(fn,ms)=>{timers.set(++nextTimer,{fn,ms});return nextTimer;},clearTimeout:id=>timers.delete(id),
     api:(path,body)=>new Promise((resolve,reject)=>{requests.push({path,body});pending.push({resolve,reject});})});
-  vm.runInContext(`let revision=1,busy=false,plan={name:'Plan',goals:[{id:1,level:3}],remap_count:1},result=null,calculationKey=null,preview=null,items={},calculatedAt=null,scheduleMode='optimized',selectedCharacter=null,characterRemaps={},replacementChoices={},adaptations=[];
+  vm.runInContext(`let revision=1,busy=false,plan={name:'Plan',goals:[{id:1,level:3}],remap_count:1},result=null,calculationKey=null,preview=null,items={},calculatedAt=null,scheduleMode='optimized',selectedCharacter=null,characterRemaps={},replacementChoices={},characterExtraRemaps={},adaptations=[];
     function currentCharacter(){return {fetched_at:42};}
     function selectedAdaptation(){return adaptations.find(a=>a.character_id===selectedCharacter);}
     function displayComparison(){if(!selectedCharacter)return result;const a=selectedAdaptation();return a&&a.source_key===calculationKey&&a.remap_count===(characterRemaps[selectedCharacter]??1)?a.comparison:null;}
@@ -62,4 +62,10 @@ test('clearing the plan or opening another workspace invalidates an in-flight re
   const t=setup();const run=t.run();t.read('revision++;plan.goals=[];');
   t.pending.shift().resolve(response());await run;
   assert.equal(t.read('result'),null);assert.equal(t.timers.size,0);
+});
+test('extra remap is an explicit per-character input and changes the optimization key',async()=>{
+ const t=setup();t.read("selectedCharacter=7;result={optimized:{days:1,rows:[]}};calculationKey='shared';let previousKey=optimizationKey();characterExtraRemaps[7]=true;");
+ assert.equal(t.read('previousKey===optimizationKey()'),false);
+ const running=t.run();assert.equal(t.requests.at(-1).body.extra_remap,true);
+ t.pending.shift().resolve({adaptation:{character_id:7,source_key:'shared',remap_count:1,extra_remap:true,comparison:{optimized:{days:1,rows:[]}}},items:{}});await running;
 });
