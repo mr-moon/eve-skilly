@@ -253,6 +253,7 @@ mod tests {
             next_remap: None,
             unallocated_sp: 0,
             warnings: vec![],
+            queue: None,
         };
         let personal = adapt(&plan, &pilot, &skills, false, None).unwrap();
         assert!(personal

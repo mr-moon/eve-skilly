@@ -34,3 +34,24 @@ test('outdated Pyfa search results cannot overwrite a later query',async()=>{
  t.pending[0].resolve({fits:[{id:1,name:'Old fit',ship:'Ship',updated:'today'}]});await old;
  assert.match(t.nodes.get('pyfa-results').innerHTML,/New fit/);assert.doesNotMatch(t.nodes.get('pyfa-results').innerHTML,/Old fit/);
 });
+test('fit preview consolidates repeated items and ignores Pyfa mutation metadata',()=>{
+ const t=setup();const result=JSON.parse(t.read(`JSON.stringify(fitPreviewEntries('[Noctis, Test]\\nSalvager II\\nSalvager II\\nCargo Scanner II [1]\\n\\nSalvager II x4\\n[1] Cargo Scanner II\\n  Unstable Mutaplasmid\\n  cpu 22'))`));
+ assert.equal(result.ship,'Noctis');assert.deepEqual(result.entries,[{name:'Salvager II',count:6},{name:'Cargo Scanner II',count:1}]);
+});
+function progressSetup(){
+ const nodes=new Map(),pending=[],control={inert:false},close={disabled:false},bar={hidden:true};
+ const ctx=vm.createContext({JSON,Map,Date,String,Number,Array,
+ $:id=>{if(!nodes.has(id))nodes.set(id,{textContent:'',value:'typed fit',hidden:true,dataset:{},setAttribute(name,value){this[name]=value},querySelector:()=>bar,querySelectorAll:selector=>selector==='[data-fit-controls]'?[control]:[close]});return nodes.get(id);},
+ document:{querySelectorAll:()=>[]},api:()=>new Promise((resolve,reject)=>pending.push({resolve,reject})),setTimeout:()=>0,clearTimeout:()=>{}});
+ vm.runInContext(source,ctx);return{run:code=>vm.runInContext(code,ctx),nodes,pending,control,close,bar};
+}
+test('fit loading shows progress immediately, blocks duplicate clicks and restores controls',async()=>{
+ const t=progressSetup();const task=t.run("withFitProgress('editor','Loading requirements',async step=>{step('Reading ESI');return api();})");
+ assert.equal(t.nodes.get('fit-editor-progress').hidden,false);assert.equal(t.nodes.get('fit-editor-progress-text').textContent,'Reading ESI');assert.equal(t.control.inert,true);assert.equal(t.close.disabled,true);assert.equal(t.bar.hidden,false);
+ await t.run("withFitProgress('editor','Duplicate',()=>api())");assert.equal(t.pending.length,1);
+ t.pending[0].resolve({ok:true});await task;assert.equal(t.nodes.get('fit-editor-progress').hidden,true);assert.equal(t.control.inert,false);assert.equal(t.close.disabled,false);
+});
+test('fit loading failure remains visible in the modal and preserves entered data',async()=>{
+ const t=progressSetup();const task=t.run("withFitProgress('editor','Loading',()=>api())");t.pending[0].reject(new Error('ESI unavailable'));await assert.rejects(task,/ESI unavailable/);
+ assert.equal(t.nodes.get('fit-editor-progress').hidden,false);assert.equal(t.nodes.get('fit-editor-progress').dataset.state,'error');assert.equal(t.nodes.get('fit-editor-progress-text').textContent,'ESI unavailable');assert.equal(t.bar.hidden,true);assert.equal(t.control.inert,false);assert.equal(t.close.disabled,false);
+});

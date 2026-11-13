@@ -198,8 +198,8 @@ function renderQueue() {
   const books=new Map(queueBookEvents(schedule,injected).map(event=>[event.index,event]));
   const targets = new Map();
   for (const row of rows) targets.set(row.id, Math.max(targets.get(row.id) || 0, row.level));
-  $('empty-queue').hidden = rows.length > 0;
-  const output = [];
+  $('empty-queue').hidden = rows.length > 0 || Boolean(selectedCharacter && showLearnedSkills && learnedPlanRows(currentCharacter()).length);
+  const output = [learnedQueueRows()];
   let nextEvent = 0;
   for (const [i, row] of rows.entries()) {
     while (nextEvent < events.length && events[nextEvent].day <= row.start_day + 1e-9) {
@@ -210,7 +210,7 @@ function renderQueue() {
     const rate = days > 0 ? row.points / (days * 24) : 0;
     const rank = items[row.id]?.skill?.rank ?? '—';
     const levels = [1,2,3,4,5].map(level => `<i class="level-block ${level <= row.level ? 'filled' : level <= targets.get(row.id) ? 'future' : ''}"></i>`).join('');
-    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i>${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
+    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i>${esc(row.name)} <span class="roman-level">${roman[row.level]}</span><span class="queue-tracking-slot">${queueRowTracking(row)}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
   }
   while (nextEvent < events.length) output.push(queueEventRow(events[nextEvent++]));
   $('queue').innerHTML = output.join('');
@@ -259,6 +259,7 @@ function renderSummary() {
   $('export-queue').disabled = !rows.length;
   $('copy-queue').disabled = !rows.length;
   renderRecommendations();
+  renderTracking();
   updateSaveState(); renderCharacterContext(); renderImplantStatus(); renderGroupContext(); renderAccelerationControls(); renderBookCosts(); renderJourney();
 }
 function renderDashboard() { renderQueue(); renderSummary(); scheduleOptimization(); }
@@ -367,7 +368,7 @@ $('file').addEventListener('change', async () => {
 });
 $('clear').addEventListener('click', startNewPlan);
 action('Открываем локальный план…', async () => {
-  initJourney();initGoalControls();initQueueControls();
+  initJourney();initGoalControls();initQueueControls();initTracking();
   await initPlanLibrary();
   await initCharacters();
   initGroups();

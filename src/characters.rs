@@ -49,6 +49,9 @@ pub struct CharacterSnapshot {
     pub next_remap: Option<String>,
     pub unallocated_sp: u64,
     pub warnings: Vec<String>,
+    /// None identifies snapshots made before full queue tracking was supported.
+    #[serde(default)]
+    pub queue: Option<Vec<QueueEntry>>,
 }
 impl CharacterSnapshot {
     pub fn summary(&self) -> Value {
@@ -81,7 +84,8 @@ impl CharacterSnapshot {
             "bonus_remaps":self.bonus_remaps,"next_remap":self.next_remap,
             "unallocated_sp":self.unallocated_sp,"warnings":self.warnings,"skill_count":self.trained.len(),
             "total_sp":total_sp,"biology_level":biology_level,"booster_duration_bonus":duration_bonus,"science_level":science_level,
-            "injected_skill_ids":self.trained.keys().copied().collect::<Vec<_>>()})
+            "injected_skill_ids":self.trained.keys().copied().collect::<Vec<_>>(),
+            "trained":self.trained,"queue":self.queue})
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -687,13 +691,16 @@ struct AttributesResponse {
     bonus_remaps: u8,
     accrued_remap_cooldown_date: Option<String>,
 }
-#[derive(Deserialize)]
-struct QueueEntry {
-    skill_id: u32,
-    start_date: Option<String>,
-    finish_date: Option<String>,
-    training_start_sp: Option<f64>,
-    level_end_sp: Option<f64>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct QueueEntry {
+    pub skill_id: u32,
+    pub finished_level: u8,
+    pub queue_position: u32,
+    pub start_date: Option<String>,
+    pub finish_date: Option<String>,
+    pub training_start_sp: Option<f64>,
+    pub level_start_sp: Option<f64>,
+    pub level_end_sp: Option<f64>,
 }
 fn build_snapshot(
     id: u64,
@@ -722,7 +729,7 @@ fn build_snapshot(
         }
         trained.insert(skill.skill_id, skill.skillpoints_in_skill);
     }
-    for entry in queue {
+    for entry in &queue {
         let Some(finish) = entry
             .finish_date
             .as_deref()
@@ -817,6 +824,7 @@ fn build_snapshot(
         next_remap,
         unallocated_sp: skills.unallocated_sp,
         warnings,
+        queue: Some(queue),
     })
 }
 
@@ -882,6 +890,7 @@ mod tests {
             next_remap: None,
             unallocated_sp: 0,
             warnings: vec![],
+            queue: None,
         }
     }
     #[test]
@@ -1013,6 +1022,9 @@ mod tests {
         }];
         let q = |id, start: &str, end: &str, start_sp, end_sp| QueueEntry {
             skill_id: id,
+            finished_level: 1,
+            queue_position: 0,
+            level_start_sp: Some(0.0),
             start_date: Some(start.into()),
             finish_date: Some(end.into()),
             training_start_sp: Some(start_sp),
@@ -1050,6 +1062,15 @@ mod tests {
         assert!(!pilot.trained.contains_key(&3330));
         assert_eq!(pilot.remap_count, 2);
         assert_eq!(pilot.unallocated_sp, 123);
+        let saved = pilot.summary();
+        assert_eq!(saved["queue"].as_array().unwrap().len(), 3);
+        assert_eq!(saved["queue"][0]["finished_level"], 1);
+        assert_eq!(saved["queue"][0]["queue_position"], 0);
+        assert!(saved["trained"]["3300"].as_f64().unwrap() > 1000.0);
+        let mut legacy = serde_json::to_value(&pilot).unwrap();
+        legacy.as_object_mut().unwrap().remove("queue");
+        let restored: CharacterSnapshot = serde_json::from_value(legacy).unwrap();
+        assert!(restored.queue.is_none());
     }
     #[test]
     fn callback_rejects_wrong_state_host_path_and_duplicate_parameters() {

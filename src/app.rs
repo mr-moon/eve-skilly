@@ -6,7 +6,11 @@ use crate::{
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::{collections::BTreeMap, path::PathBuf, sync::Mutex};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::PathBuf,
+    sync::Mutex,
+};
 
 pub struct AppService {
     fits: Mutex<crate::fits::FitStore>,
@@ -14,12 +18,23 @@ pub struct AppService {
     store: Mutex<PlanStore>,
     characters: std::sync::Arc<crate::characters::CharacterService>,
     book_prices: crate::books::BookPrices,
+    tracking_path: PathBuf,
+    purchases: Mutex<BTreeMap<u64, BTreeSet<String>>>,
 }
 type CatalogData = (BTreeMap<u32, Skill>, BTreeMap<u32, Item>);
 type PreparedWorkspace = (Workspace, BTreeMap<u32, Item>);
 impl AppService {
     pub fn new(data: PathBuf) -> Result<Self, String> {
+        let tracking_path = data.join("tracking-purchases.json");
+        let purchases = if tracking_path.exists() {
+            serde_json::from_slice(&std::fs::read(&tracking_path).map_err(|e| e.to_string())?)
+                .map_err(|e| format!("Не удалось прочитать отметки покупок: {e}"))?
+        } else {
+            BTreeMap::new()
+        };
         Ok(Self {
+            tracking_path,
+            purchases: Mutex::new(purchases),
             fits: Mutex::new(crate::fits::FitStore::new(data.clone())?),
             book_prices: crate::books::BookPrices::new(data.join("book-jita-prices.json")),
             characters: crate::characters::CharacterService::new(data.clone())?,
@@ -364,6 +379,47 @@ impl AppService {
                 Ok(json!({"opened":true}))
             }
             "/api/characters" => self.characters.state(),
+            "/api/characters/tracking" => {
+                let id = body["id"].as_u64().ok_or("Нет Character ID")?;
+                self.characters.snapshot(id)?;
+                let mut purchases = self.purchases.lock().map_err(|e| e.to_string())?;
+                if let Some(key) = body["key"].as_str() {
+                    if key.len() > 64
+                        || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                    {
+                        return Err("Некорректная отметка покупки".into());
+                    }
+                    let mut next = purchases.clone();
+                    let keys = next.entry(id).or_default();
+                    if body["purchased"].as_bool().ok_or("Нет состояния покупки")? {
+                        keys.insert(key.into());
+                    } else {
+                        keys.remove(key);
+                    }
+                    crate::storage::write_json(&self.tracking_path, &next)?;
+                    *purchases = next;
+                }
+                Ok(json!({"purchases":purchases.get(&id).cloned().unwrap_or_default()}))
+            }
+            "/api/characters/queue-items" => {
+                let id = body["id"].as_u64().ok_or("Нет Character ID")?;
+                let snapshot = self.characters.snapshot(id)?;
+                let ids: BTreeSet<_> = snapshot
+                    .queue
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|e| e.skill_id)
+                    .collect();
+                let mut catalog = self.catalog.lock().map_err(|e| e.to_string())?;
+                let mut warnings = Vec::new();
+                for skill_id in ids {
+                    if let Err(error) = catalog.ensure_skill(skill_id) {
+                        warnings.push(error);
+                        break;
+                    }
+                }
+                Ok(json!({"items":catalog.items,"warnings":warnings}))
+            }
             "/api/characters/config" => {
                 self.characters.configure(
                     body.get("client_id")

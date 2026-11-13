@@ -24,6 +24,7 @@ function renderJourney(){
   const who=selectedCharacter?currentCharacter()?.name||'персонажа':'общего плана';
   $('route-state').hidden=fresh||!hasGoals;
   $('route-state').textContent=optimizationMessage();
+  $('route-state').dataset.state=optimizationFailure?.key===optimizationKey()&&optimizationFailure.attempts>=3?'error':'loading';
   $('copy-queue').classList.toggle('primary',fresh);
   $('copy-queue').textContent='Копировать очередь';
   $('copy-queue').title=`Оптимизированная очередь · ${who}`;

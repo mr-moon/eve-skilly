@@ -61,6 +61,8 @@ function renderCharacterContext(){
 async function selectCharacter(id){
   selectedCharacter=id||null;view='queue';panel='plan';scheduleMode='optimized';showEditor('queue');
   render();queueDraft();
+  const character=currentCharacter();
+  if(character&&Date.now()-character.fetched_at>=TRACKING_REFRESH_MS)refreshTrackingCharacter(character.id);
 }
 function renderCharacterList(){
   $('characters-list').innerHTML=characterState.characters.map(c=>`<div class="saved-plan-row"><div class="saved-plan-info"><strong>${esc(c.name)}</strong><small>${c.skill_count} навыков · ${c.remap_count} remap · ${new Date(c.fetched_at).toLocaleString('ru-RU')}</small></div><div class="saved-plan-actions"><button data-use-character="${c.id}">Выбрать для плана</button><button data-sync-character="${c.id}">Обновить ESI</button></div></div>`).join('')||'<div class="library-empty">Подключите персонажа, чтобы прочитать его навыки и импланты.</div>';
@@ -100,10 +102,7 @@ async function initCharacters(){
   $('character-manage').addEventListener('click',()=>action('Открываем персонажей…',async()=>{
     await loadCharacters();showPage('characters');pollCharacters();
   }));
-  $('character-sync').addEventListener('click',()=>action('Обновляем данные персонажа…',async()=>{
-    if(!selectedCharacter)return;
-    characterState=await api('/api/characters/sync',{id:selectedCharacter});renderCharacterList();renderDashboard();
-  }));
+  $('character-sync').addEventListener('click',()=>refreshTrackingCharacter(selectedCharacter,true));
   $('extra-remap').addEventListener('change',()=>{characterExtraRemaps[selectedCharacter]=$('extra-remap').checked;renderDashboard();queueDraft();});
   $('remap-reset').addEventListener('click',()=>{delete characterRemaps[selectedCharacter];renderDashboard();queueDraft();});
   $('replace-implants').addEventListener('change',()=>{replacementChoices[selectedCharacter]=$('replace-implants').checked;renderDashboard();queueDraft();});
@@ -116,9 +115,7 @@ async function initCharacters(){
   }));
   $('characters-list').addEventListener('click',async event=>{
     const button=event.target.closest('button');if(!button||busy)return;
-    if(button.dataset.syncCharacter){await action('Обновляем навыки, импланты и атрибуты из ESI…',async()=>{
-      characterState=await api('/api/characters/sync',{id:Number(button.dataset.syncCharacter)});renderCharacterList();renderDashboard();notify('Снимок обновлён. Очередь оптимизируется автоматически.');
-    });}
+    if(button.dataset.syncCharacter)await refreshTrackingCharacter(Number(button.dataset.syncCharacter),true);
     if(button.dataset.useCharacter){showEditor(editorTab);await selectCharacter(Number(button.dataset.useCharacter));}
   });
   $('developer-link').addEventListener('click',event=>{event.preventDefault();api('/api/characters/developers',{}).catch(error=>notify(error.message,'error'));});
