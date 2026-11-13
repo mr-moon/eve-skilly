@@ -82,7 +82,7 @@ async function initCharacters(){
   $('character-implants').addEventListener('error',event=>{
     if(event.target.classList?.contains('implant-icon'))event.target.hidden=true;
   },true);
-  await loadCharacters();$('sso-client-id').value=characterState.client_id||'';$('sso-settings').open=!characterState.client_id;
+  await loadCharacters();
 
   $('characters-close').addEventListener('click',()=>showEditor(editorTab));
   $('character-none').addEventListener('click',()=>selectCharacter(null));
@@ -106,11 +106,7 @@ async function initCharacters(){
   $('extra-remap').addEventListener('change',()=>{characterExtraRemaps[selectedCharacter]=$('extra-remap').checked;renderDashboard();queueDraft();});
   $('remap-reset').addEventListener('click',()=>{delete characterRemaps[selectedCharacter];renderDashboard();queueDraft();});
   $('replace-implants').addEventListener('change',()=>{replacementChoices[selectedCharacter]=$('replace-implants').checked;renderDashboard();queueDraft();});
-  $('sso-save').addEventListener('click',()=>action('Сохраняем настройку SSO…',async()=>{
-    characterState=await api('/api/characters/config',{client_id:$('sso-client-id').value});renderCharacterList();$('sso-settings').open=false;notify('Client ID сохранён');
-  }));
   $('character-connect').addEventListener('click',()=>action('Открываем EVE SSO в браузере…',async()=>{
-    if(!characterState.client_id){$('sso-settings').open=true;$('sso-client-id').focus();throw new Error('Укажите Client ID и нажмите «Сохранить Client ID»');}
     await api('/api/characters/connect',{});await loadCharacters();pollCharacters();notify('Завершите подключение в браузере');
   }));
   $('characters-list').addEventListener('click',async event=>{
@@ -118,6 +114,5 @@ async function initCharacters(){
     if(button.dataset.syncCharacter)await refreshTrackingCharacter(Number(button.dataset.syncCharacter),true);
     if(button.dataset.useCharacter){showEditor(editorTab);await selectCharacter(Number(button.dataset.useCharacter));}
   });
-  $('developer-link').addEventListener('click',event=>{event.preventDefault();api('/api/characters/developers',{}).catch(error=>notify(error.message,'error'));});
   pollCharacters();
 }

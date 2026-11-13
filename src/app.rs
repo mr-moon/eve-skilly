@@ -374,10 +374,6 @@ impl AppService {
                 let (workspace, items) = self.prepare_workspace(workspace)?;
                 Ok(json!({"workspace":workspace,"items":items}))
             }
-            "/api/characters/developers" => {
-                crate::server::open_browser("https://developers.eveonline.com/applications");
-                Ok(json!({"opened":true}))
-            }
             "/api/characters" => self.characters.state(),
             "/api/characters/tracking" => {
                 let id = body["id"].as_u64().ok_or("Нет Character ID")?;
@@ -419,14 +415,6 @@ impl AppService {
                     }
                 }
                 Ok(json!({"items":catalog.items,"warnings":warnings}))
-            }
-            "/api/characters/config" => {
-                self.characters.configure(
-                    body.get("client_id")
-                        .and_then(Value::as_str)
-                        .ok_or("Нет Client ID")?,
-                )?;
-                self.characters.state()
             }
             "/api/characters/connect" => {
                 let url = self.characters.begin()?;

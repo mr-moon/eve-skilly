@@ -163,10 +163,8 @@ pub fn adapt_with_remap_choice(
     })
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
-struct Config {
-    client_id: String,
-}
+/// Public Client ID of the Skilly application registered with CCP (PKCE flow, no client secret).
+const CLIENT_ID: &str = "dda7cac4e3c1460c9006168550b94870";
 #[derive(Clone, Serialize, Deserialize)]
 struct Credentials {
     refresh_token: String,
@@ -181,7 +179,6 @@ struct LoginStatus {
 pub struct CharacterService {
     root: PathBuf,
     client: Client,
-    config: Mutex<Config>,
     snapshots: Mutex<BTreeMap<u64, CharacterSnapshot>>,
     login: Mutex<LoginStatus>,
 }
@@ -207,39 +204,6 @@ struct Claims {
 
 impl CharacterService {
     pub fn new(root: PathBuf) -> Result<Arc<Self>, String> {
-        let mut config: Config = if root.join("sso.json").exists() {
-            serde_json::from_slice(
-                &std::fs::read(root.join("sso.json")).map_err(|e| e.to_string())?,
-            )
-            .map_err(|e| format!("SSO config: {e}"))?
-        } else {
-            Config::default()
-        };
-        if config.client_id.is_empty() {
-            let id = std::env::var("EVE_CLIENT_ID").ok().or_else(|| {
-                let mut files = vec![
-                    PathBuf::from(".env"),
-                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".env"),
-                ];
-                if let Ok(exe) = std::env::current_exe() {
-                    if let Some(parent) = exe.parent() {
-                        files.push(parent.join(".env"));
-                    }
-                }
-                files
-                    .into_iter()
-                    .filter_map(|p| std::fs::read_to_string(p).ok())
-                    .find_map(|text| dotenv_client_id(&text))
-            });
-            if let Some(id) = id.filter(|id| {
-                !id.is_empty()
-                    && id.len() <= 100
-                    && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
-            }) {
-                config.client_id = id;
-                write_json(&root.join("sso.json"), &config)?;
-            }
-        }
         let snapshots = if root.join("characters.json").exists() {
             serde_json::from_slice(
                 &std::fs::read(root.join("characters.json")).map_err(|e| e.to_string())?,
@@ -257,35 +221,17 @@ impl CharacterService {
         Ok(Arc::new(Self {
             root,
             client,
-            config: Mutex::new(config),
             snapshots: Mutex::new(snapshots),
             login: Mutex::new(LoginStatus::default()),
         }))
     }
     pub fn state(&self) -> Result<Value, String> {
-        let config = self.config.lock().map_err(|e| e.to_string())?.clone();
         let snapshots = self.snapshots.lock().map_err(|e| e.to_string())?;
         Ok(
-            json!({"client_id":config.client_id,"callback":CALLBACK,"scopes":SCOPES,
+            json!({"callback":CALLBACK,"scopes":SCOPES,
             "characters":snapshots.values().map(CharacterSnapshot::summary).collect::<Vec<_>>(),
             "login":*self.login.lock().map_err(|e|e.to_string())?}),
         )
-    }
-    pub fn configure(&self, client_id: &str) -> Result<(), String> {
-        let id = client_id.trim();
-        if id.is_empty()
-            || id.len() > 100
-            || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
-        {
-            return Err("Укажите Client ID приложения CCP, без Client Secret".into());
-        }
-        let mut config = self.config.lock().map_err(|e| e.to_string())?;
-        let next = Config {
-            client_id: id.into(),
-        };
-        write_json(&self.root.join("sso.json"), &next)?;
-        *config = next;
-        Ok(())
     }
     pub fn snapshot(&self, id: u64) -> Result<CharacterSnapshot, String> {
         self.snapshots
@@ -432,15 +378,6 @@ impl CharacterService {
         self.download(id, name, &token.access_token)
     }
     pub fn begin(self: &Arc<Self>) -> Result<String, String> {
-        let client_id = self
-            .config
-            .lock()
-            .map_err(|e| e.to_string())?
-            .client_id
-            .clone();
-        if client_id.is_empty() {
-            return Err("Сначала укажите Client ID приложения CCP".into());
-        }
         let listener=TcpListener::bind("127.0.0.1:17422").map_err(|_|"Порт callback 17422 занят. Дождитесь завершения предыдущего подключения или закройте второе окно Skilly.")?;
         listener.set_nonblocking(true).map_err(|e| e.to_string())?;
         let meta = self.metadata()?;
@@ -449,7 +386,7 @@ impl CharacterService {
         let mut url = url::Url::parse(&meta.authorization_endpoint).map_err(|e| e.to_string())?;
         url.query_pairs_mut().extend_pairs([
             ("response_type", "code"),
-            ("client_id", client_id.as_str()),
+            ("client_id", CLIENT_ID),
             ("redirect_uri", CALLBACK),
             ("scope", SCOPES.join(" ").as_str()),
             ("state", state.as_str()),
@@ -468,7 +405,7 @@ impl CharacterService {
             None,
         );
         std::thread::spawn(move || {
-            let result = service.wait_callback(listener, &state, &verifier, &client_id, &meta);
+            let result = service.wait_callback(listener, &state, &verifier, CLIENT_ID, &meta);
             match result {
                 Ok(id) => service.status("connected", "Персонаж подключён", Some(id)),
                 Err(error) => service.status("error", &error, None),
@@ -828,30 +765,6 @@ fn build_snapshot(
     })
 }
 
-fn dotenv_client_id(text: &str) -> Option<String> {
-    text.lines().find_map(|line| {
-        let line = line
-            .trim()
-            .trim_start_matches('\u{feff}')
-            .strip_prefix("export ")
-            .unwrap_or(line.trim().trim_start_matches('\u{feff}'));
-        let (key, value) = line.split_once('=')?;
-        if key.trim() != "EVE_CLIENT_ID" {
-            return None;
-        }
-        let value = value.trim();
-        Some(
-            if value.starts_with('"') && value.ends_with('"')
-                || value.starts_with('\'') && value.ends_with('\'')
-            {
-                value[1..value.len() - 1].into()
-            } else {
-                value.split(" #").next().unwrap_or("").trim().into()
-            },
-        )
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1089,14 +1002,6 @@ mod tests {
         )
         .is_err());
         assert!(parse_callback(&request.replace("/sso/callback?", "/other?"), "valid").is_err());
-    }
-    #[test]
-    fn dotenv_reads_only_public_client_id() {
-        assert_eq!(
-            dotenv_client_id("EVE_CLIENT_SECRET=secret\nEVE_CLIENT_ID=\"public-id\""),
-            Some("public-id".into())
-        );
-        assert_eq!(dotenv_client_id("EVE_CLIENT_SECRET=secret"), None);
     }
     #[cfg(windows)]
     #[test]
