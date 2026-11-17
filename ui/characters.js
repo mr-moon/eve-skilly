@@ -32,6 +32,7 @@ async function togglePlanTracking(detach=false){
         const data=await api('/api/characters/track-plan',{id:characterId,plan_id:detach?null:activePlanId,expected_plan_id:previous?.id||null});
         characterState.tracked_plans=data.tracked_plans;
         renderCharacterList();renderCharacterContext();
+        if(typeof renderTracking==='function')renderTracking();
         notify(detach?'Отслеживание отключено':'План отслеживается для выбранного персонажа');
       }catch(error){await loadCharacters();throw error;}
     });

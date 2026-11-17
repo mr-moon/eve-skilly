@@ -185,11 +185,10 @@ impl PlanStore {
         self.tracked_plans
             .iter()
             .map(|(&character, id)| {
-                let name = self
-                    .read(id)
-                    .map(|record| record.workspace.plan.name)
-                    .unwrap_or_else(|_| "План недоступен".into());
-                (character, serde_json::json!({"id":id,"name":name}))
+                let record = self.read(id).ok();
+                let name = record.as_ref().map(|r| r.workspace.plan.name.as_str())
+                    .unwrap_or("План недоступен");
+                (character, serde_json::json!({"id":id,"name":name,"saved_at":record.as_ref().map(|r|r.saved_at)}))
             })
             .collect()
     }

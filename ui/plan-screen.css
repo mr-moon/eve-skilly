@@ -491,3 +491,12 @@ dialog.fit-editor-dialog[open]{width:min(900px,calc(100vw - 32px));height:min(76
 .queue-card>#route-state[data-state=error]{left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;max-width:calc(100% - 40px);padding:12px 16px;border:1px solid #6a5534;border-radius:8px;background:var(--raised);box-shadow:0 6px 24px #0005;font-size:12px;line-height:1.5}
 @keyframes queue-loader-appear{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.queue-card>#route-state[data-state=loading]{opacity:1;animation:none}.queue-card>#route-state[data-state=loading]::after{animation:none}}
+
+.bound-queue-status{margin-top:10px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--raised);font-size:11px;min-width:0}
+.bound-queue-status>div{display:flex;align-items:center;gap:12px;min-width:0}
+.bound-queue-status strong{font-size:11px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bound-queue-status button{margin-left:auto;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:0;flex-shrink:0}
+.bound-queue-status p{margin:5px 0 0;font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bound-queue-status[data-state=warning],.bound-queue-status[data-state=error]{border-color:#695332;background:#30291e}
+.bound-queue-status[data-state=warning] strong,.bound-queue-status[data-state=error] strong{color:var(--warn)}
+.bound-queue-status[data-state=matched] strong{color:var(--accent)}

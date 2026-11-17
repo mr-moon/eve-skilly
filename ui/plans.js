@@ -132,12 +132,13 @@ async function savePlan(asNew=false,name=null) {
     if(!plan.name.trim()) plan.name='Новый план';
     await settleDraft();
     let data;try{data=await api('/api/plans/save',{id:asNew?null:activePlanId,workspace:captureWorkspace()});}catch(error){saveStateError={scope:'library',message:error.message};updateSaveState();throw error;}
-    for(const tracked of Object.values(characterState.tracked_plans||{}))if(tracked.id===data.record.id)tracked.name=data.record.workspace.plan.name;
+    for(const tracked of Object.values(characterState.tracked_plans||{}))if(tracked.id===data.record.id){tracked.name=data.record.workspace.plan.name;tracked.saved_at=data.record.saved_at;}
     const previousTab=editorTab;
     if(fingerprint(data.record.workspace)===fingerprint(captureWorkspace())){activePlanId=data.record.id;savedFingerprint=fingerprint(data.record.workspace);updateSaveState();renderJourney();}
     else applyWorkspace(data.record.workspace,data.record.id,data.record.workspace);
     showEditor(previousTab);
     renderCharacterList();
+    if(typeof renderTracking==='function')renderTracking();
     $('draft-state').textContent='Черновик сохранён';
     success=true;notify(`План «${plan.name}» сохранён`);
   });

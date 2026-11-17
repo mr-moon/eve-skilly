@@ -8,6 +8,63 @@ const trackingItems = {};
 const trackingLoaded = new Set();
 const trackingLoading = new Set();
 const TRACKING_REFRESH_MS = 5 * 60 * 1000;
+const boundQueueChecks = new Map();
+const boundQueueRequests = new Map();
+function boundQueueKey(character) {
+  if (!character) return null;
+  const tracked = trackedPlan(character.id);
+  return tracked ? JSON.stringify([character.id, character.fetched_at, tracked.id, tracked.saved_at]) : null;
+}
+function boundQueueCheck(character) {
+  return boundQueueChecks.get(boundQueueKey(character));
+}
+async function checkBoundQueue(character) {
+  const key = boundQueueKey(character);
+  if (!key || character.queue == null || boundQueueRequests.has(key) || boundQueueChecks.has(key)) return;
+  boundQueueRequests.set(key, true);
+  try {
+    const data = await api('/api/characters/plan-queue', {id:character.id});
+    const tracked = trackedPlan(character.id);
+    if (key !== boundQueueKey(character) || data.plan_id !== tracked?.id || data.saved_at !== tracked.saved_at || data.snapshot_at !== character.fetched_at) return;
+    Object.assign(trackingItems, data.items);
+    boundQueueChecks.set(key, data);
+  } catch (error) {
+    boundQueueChecks.set(key, {error:error.message});
+  } finally {
+    boundQueueRequests.delete(key);
+    if (selectedCharacter === character.id && key === boundQueueKey(currentCharacter())) renderTracking();
+  }
+}
+function boundQueueStatus(schedule, character, now = Date.now()) {
+  if (character.queue == null) return {state:'pending', text:'Нужны данные очереди ESI'};
+  if (!schedule) return {state:'pending', text:'Сверяем с привязанным планом…'};
+  const relation = compareActualQueue(schedule, character, now);
+  if (!relation.actual.length) return relation.planned.length
+    ? {state:'warning', text:'Очередь пуста — план не запущен', relation}
+    : {state:'matched', text:'План изучен', relation};
+  if (relation.prefix === relation.actual.length) return {state:'matched', text:'Очередь следует привязанному плану', relation};
+  const index = relation.prefix, expected = relation.planned[index], actual = relation.actual[index];
+  const label = row => `${trackingName(row.skill_id ?? row.id)} ${roman[row.finished_level ?? row.level]}`;
+  return {state:'warning', text:`Очередь отличается от привязанного плана · №${index + 1}`,
+    detail:expected ? `В игре: ${label(actual)}. По плану: ${label(expected)}.` : `В игре: ${label(actual)}. Этот уровень не предусмотрен оставшейся очередью плана.`, relation};
+}
+function renderBoundQueueStatus(character) {
+  const tracked = trackedPlan(character.id), node = $('bound-queue-status');
+  node.hidden = !tracked;
+  if (!tracked) return;
+  const check = boundQueueCheck(character);
+  const status = check?.error ? {state:'error', text:'Не удалось сверить очередь', detail:check.error}
+    : boundQueueStatus(check?.schedule, character);
+  node.dataset.state = status.state;
+  $('bound-queue-message').textContent = status.text;
+  $('bound-queue-message').title = [status.text,status.detail].filter(Boolean).join('. ');
+  $('bound-queue-plan').textContent = tracked.name;
+  $('bound-queue-plan').title = `Открыть привязанный план «${tracked.name}»`;
+  $('bound-queue-detail').textContent = status.detail || '';
+  $('bound-queue-detail').title = status.detail || '';
+  $('bound-queue-detail').hidden = !status.detail;
+  checkBoundQueue(character);
+}
 function trackingSkill(id) {
   return items[id]?.skill || trackingItems[id]?.skill;
 }
@@ -51,7 +108,11 @@ function queueEntryRemaining(entry, character, now = Date.now()) {
   return Math.max(0, end - Math.max(floor, queueEntryPoints(entry, character, now)));
 }
 function compareActualQueue(schedule, character, now = Date.now()) {
-  const actual = actualQueue(character, now), planned = schedule?.rows || [];
+  const completed = new Set((character?.queue || []).filter(entry => {
+    const finish = queueDate(entry.finish_date);
+    return finish !== null && finish <= now;
+  }).map(queueKey));
+  const actual = actualQueue(character, now), planned = (schedule?.rows || []).filter(row => !completed.has(queueKey(row)));
   const keys = new Set(planned.map(queueKey));
   const matched = actual.filter(entry => keys.has(queueKey(entry)));
   let prefix = 0;
@@ -65,7 +126,7 @@ function compareActualQueue(schedule, character, now = Date.now()) {
     totalTime += remaining;
     if (keys.has(queueKey(entry))) matchedTime += remaining;
   }
-  return {actual, matched: matched.length, prefix,
+  return {actual, planned, matched: matched.length, prefix,
     percent: actual.length ? Math.round(100 * (timed && totalTime > 0 ? matchedTime / totalTime : matched.length / actual.length)) : 0,
     timed};
 }
@@ -107,8 +168,8 @@ function trackingTime(time) {
   return new Date(time).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
 }
 function eventAnchor(event, schedule, relation, computedAt) {
-  const index = schedule.rows.findIndex(row => row.start_day + 1e-8 >= event.day);
-  const row = schedule.rows[index];
+  const row = schedule.rows.find(row => row.start_day + 1e-8 >= event.day);
+  const index = (relation.planned || schedule.rows).findIndex(entry => row && queueKey(entry) === queueKey(row));
   const actualIndex = relation.actual.findIndex(entry => row && queueKey(entry) === queueKey(row));
   // A date is actionable only when the entire prefix through this boundary agrees.
   const aligned = actualIndex === index && index >= 0 && relation.prefix > index;
@@ -184,6 +245,7 @@ function renderTracking() {
   $('tracking-actions-section').hidden = !character;
   $('show-learned-control').hidden = !character;
   if (!character) return;
+  renderBoundQueueStatus(character);
   const schedule = activeSchedule(), relation = compareActualQueue(schedule, character);
   const current = trainingEntry(character), learned = learnedPlanRows(character);
   $('show-learned').checked = showLearnedSkills;
@@ -205,6 +267,7 @@ function renderTracking() {
     if (relation.actual.length) match += ` · ${relation.percent}% ${relation.timed?'времени':'уровней'} по плану`;
   }
   $('tracking-match').textContent = match;
+  $('tracking-match').hidden = Boolean(trackedPlan(character.id));
   const total = learned.length + (schedule?.rows.length || 0);
   $('tracking-progress').max = Math.max(1,total);
   $('tracking-progress').value = learned.length;
@@ -238,6 +301,7 @@ async function refreshTrackingCharacter(id, manual = false) {
   if (trackingRefresh || !id) return;
   if (!manual && Date.now()-(trackingAttempts.get(id) || 0) < TRACKING_REFRESH_MS) return;
   trackingAttempts.set(id,Date.now());
+  for (const key of boundQueueChecks.keys()) if (JSON.parse(key)[0] === id) boundQueueChecks.delete(key);
   trackingRefresh = id;
   trackingErrors.delete(id);
   renderTracking();
@@ -254,6 +318,10 @@ async function refreshTrackingCharacter(id, manual = false) {
   }
 }
 function initTracking() {
+  $('bound-queue-plan').addEventListener('click',()=>{
+    const tracked=trackedPlan(selectedCharacter);
+    if(tracked && tracked.id!==activePlanId)openSavedPlan(tracked.id,selectedCharacter);
+  });
   try { showLearnedSkills = localStorage.getItem('skilly-show-learned') === 'true'; } catch (_) {}
   $('show-learned').addEventListener('change',()=>{
     showLearnedSkills = $('show-learned').checked;

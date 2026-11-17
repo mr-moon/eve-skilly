@@ -384,6 +384,40 @@ impl AppService {
                 Ok(json!({"workspace":workspace,"items":items}))
             }
             "/api/characters" => self.character_state(),
+            "/api/characters/plan-queue" => {
+                let id = body["id"].as_u64().ok_or("Нет Character ID")?;
+                let mut record = {
+                    let store = self.store.lock().map_err(|e| e.to_string())?;
+                    let tracked = store.tracked_plans();
+                    let plan_id = tracked
+                        .get(&id)
+                        .and_then(|p| p["id"].as_str())
+                        .ok_or("Нет привязанного плана")?;
+                    store.read(plan_id)?
+                };
+                let workspace = &mut record.workspace;
+                let (skills, items) = self.normalize(&mut workspace.plan)?;
+                self.load_priority_prices(&mut workspace.plan, &skills)?;
+                let snapshot = self.characters.snapshot(id)?;
+                let adaptation = crate::characters::adapt_with_remap_choice(
+                    &workspace.plan,
+                    &snapshot,
+                    &skills,
+                    workspace
+                        .character_implant_replacements
+                        .get(&id)
+                        .copied()
+                        .unwrap_or(false),
+                    workspace.character_remaps.get(&id).copied(),
+                    workspace
+                        .character_extra_remaps
+                        .get(&id)
+                        .copied()
+                        .unwrap_or(false),
+                )?;
+                Ok(json!({"plan_id":record.id,"saved_at":record.saved_at,
+                    "snapshot_at":snapshot.fetched_at,"schedule":adaptation.comparison.optimized,"items":items}))
+            }
             "/api/characters/track-plan" => {
                 #[derive(Deserialize)]
                 struct Input {
@@ -406,14 +440,14 @@ impl AppService {
                 self.characters.snapshot(id)?;
                 let mut purchases = self.purchases.lock().map_err(|e| e.to_string())?;
                 if let Some(key) = body["key"].as_str() {
-                    if key.len() > 64
-                        || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                    if key.len() > 64 || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
                     {
                         return Err("Некорректная отметка покупки".into());
                     }
                     let mut next = purchases.clone();
                     let keys = next.entry(id).or_default();
-                    if body["purchased"].as_bool().ok_or("Нет состояния покупки")? {
+                    if body["purchased"].as_bool().ok_or("Нет состояния покупки")?
+                    {
                         keys.insert(key.into());
                     } else {
                         keys.remove(key);

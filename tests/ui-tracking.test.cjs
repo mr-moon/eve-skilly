@@ -5,7 +5,7 @@ const vm = require('node:vm');
 function setup() {
   const context = vm.createContext({Date, Set, Map, Math, Number,esc:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;'),
     items:{1:{name:'Int skill',skill:{rank:1,primary:0,secondary:4}},2:{name:'Per skill',skill:{rank:1,primary:1,secondary:3}}},
-    result:{baseline:{rows:[{id:1,name:'Int skill',level:1},{id:1,name:'Int skill',level:2}]}},preview:null});
+    roman:['','I','II','III','IV','V'],result:{baseline:{rows:[{id:1,name:'Int skill',level:1},{id:1,name:'Int skill',level:2}]}},preview:null});
   vm.runInContext(fs.readFileSync('ui/tracking.js','utf8'),context);
   return code => vm.runInContext(code,context);
 }
@@ -64,4 +64,41 @@ test('action navigation distinguishes repeated implant events and individual boo
   assert.equal(run('targets[1].scrolled'),true);assert.equal(run('targets[0].scrolled'),undefined);
   run("jumpToTrackingAction({dataset:{trackingJump:'book',actionBook:'42'}})");
   assert.equal(run('targets[2].scrolled'),true);assert.equal(run('targets[2].focused'),true);
+});
+
+
+test('bound plan status accepts a short ordered prefix and reports the first reordered level',()=>{
+  const run=setup();run(`let character={queue:${JSON.stringify(queue)}};let schedule={rows:[{id:1,level:1},{id:2,level:1},{id:1,level:2}]};`);
+  assert.equal(run(`boundQueueStatus(schedule,character,${now}).state`),'matched');
+  run('schedule.rows=[{id:2,level:1},{id:1,level:1}]');
+  assert.equal(run(`boundQueueStatus(schedule,character,${now}).state`),'warning');
+  assert.match(run(`boundQueueStatus(schedule,character,${now}).detail`),/В игре: Int skill I. По плану: Per skill I/);
+  run('schedule.rows=[{id:1,level:1}]');
+  assert.match(run(`boundQueueStatus(schedule,character,${now}).text`),/№2/);
+});
+
+test('queue status distinguishes missing ESI, empty training and a completed plan',()=>{
+  const run=setup();
+  assert.equal(run('boundQueueStatus({rows:[]},{}).state'),'pending');
+  assert.equal(run('boundQueueStatus(null,{queue:[]}).state'),'pending');
+  assert.equal(run('boundQueueStatus({rows:[{id:1,level:1}]},{queue:[]}).state'),'warning');
+  assert.equal(run('boundQueueStatus({rows:[]},{queue:[]}).state'),'matched');
+});
+
+test('levels finished since the ESI snapshot do not cause a false queue mismatch',()=>{
+  const run=setup();run(`let character={queue:${JSON.stringify(queue)}};let schedule={rows:[{id:1,level:1},{id:2,level:1}]};`);
+  assert.equal(run(`boundQueueStatus(schedule,character,${now+7200000}).state`),'matched');
+});
+
+test('late bound-plan checks cannot overwrite a changed assignment or another pilot',async()=>{
+  const run=setup();run(`let selectedCharacter=1,linked={id:'old',saved_at:10},renders=0,resolveRequest;
+    function trackedPlan(){return linked;}
+    function currentCharacter(){return character;}
+    function api(){return new Promise(resolve=>resolveRequest=resolve);}
+    renderTracking=()=>{renders++;};
+    let character={id:1,fetched_at:20,queue:[]};let pending=checkBoundQueue(character);
+    linked={id:'new',saved_at:11};resolveRequest({plan_id:'old',saved_at:10,snapshot_at:20,schedule:{rows:[]},items:{}});`);
+  await run('pending');assert.equal(run('boundQueueChecks.size'),0);assert.equal(run('renders'),0);
+  run(`pending=checkBoundQueue(character);selectedCharacter=2;resolveRequest({plan_id:'new',saved_at:11,snapshot_at:20,schedule:{rows:[]},items:{}});`);
+  await run('pending');assert.equal(run('boundQueueChecks.size'),1);assert.equal(run('renders'),0);
 });
