@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 function setup(){
   const nodes=new Map(),requests=[],messages=[];
-  const ctx=vm.createContext({Map,Date,Boolean,
+  const ctx=require('./i18n-helper.cjs').createContext({Map,Date,Boolean,
     $:id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id);},
     notify:message=>messages.push(message),renderCharacterList:()=>{},renderCharacterContext:()=>{},
     currentCharacter:()=>({name:'Alice'}),

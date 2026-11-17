@@ -105,6 +105,8 @@ fn handle(mut stream: TcpStream, host: &str, state: Arc<AppService>) -> Result<(
         let (mime, body) = match path {
             "/app-icon.png" => return response(&mut stream,200,"image/png",include_bytes!("../ui/app-icon.png")),
             "/" => ("text/html; charset=utf-8", include_str!("../ui/index.html")),
+            "/i18n.js" => ("text/javascript; charset=utf-8", include_str!("../ui/i18n.js")),
+            "/i18n-catalog.js" => ("text/javascript; charset=utf-8", include_str!("../ui/i18n-catalog.js")),
             "/journey.js" => (
                 "text/javascript; charset=utf-8",
                 include_str!("../ui/journey.js"),

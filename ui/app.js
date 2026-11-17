@@ -19,7 +19,7 @@ function updateDashboardPending(){
 let view = 'queue', panel = 'add', scheduleMode = 'optimized', calculatedAt = new Date();
 
 function newPlan() {
-  return { name: 'Новый план', goals: [], attributes: [20,20,19,20,20], remap_count: 1, optimize_implants: true, queue_priority: 'fit_ready' };
+  return { name: t("app_040"), goals: [], attributes: [20,20,19,20,20], remap_count: 1, optimize_implants: true, queue_priority: 'fit_ready' };
 }
 function notify(text, type = 'ok', persistent = false) {
   clearTimeout(statusTimer);
@@ -34,7 +34,7 @@ async function api(path, body) {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  if (!response.ok) throw new Error(localizeServerText(data.error) || `HTTP ${response.status}`);
   return data;
 }
 async function action(message, fn) {
@@ -55,21 +55,21 @@ async function action(message, fn) {
 }
 function activeSchedule() { return displayComparison()?.optimized || null; }
 function skillName(id) { return items[id]?.name || `Type #${id}`; }
-function formatNumber(value) { return Math.round(value).toLocaleString('ru-RU'); }
-function plural(value, forms) { const n = Math.abs(value) % 100, last = n % 10; return forms[n > 10 && n < 15 ? 2 : last === 1 ? 0 : last >= 2 && last <= 4 ? 1 : 2]; }
+function formatNumber(value) { return Math.round(value).toLocaleString(uiLocale()); }
+function plural(value, forms) { if(uiLanguage==='en')return forms[Math.abs(value)===1?0:2]; const n = Math.abs(value) % 100, last = n % 10; return forms[n > 10 && n < 15 ? 2 : last === 1 ? 0 : last >= 2 && last <= 4 ? 1 : 2]; }
 function compactSP(value) { return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function duration(days, compact = false) {
   const seconds = Math.max(0, Math.round(days * 86400));
   const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600);
   const m = Math.floor(seconds % 3600 / 60), s = seconds % 60;
-  if (d) return compact ? `${d}д ${h}ч` : `${d}д ${h}ч ${m}м`;
-  if (h) return `${h}ч ${m}м`;
-  return compact ? `${m}м ${s}с` : `${m}м`;
+  if (d) return compact ? t("app_041", d, h) : t("app_042", d, h, m);
+  if (h) return t("app_043", h, m);
+  return compact ? t("app_044", m, s) : t("app_045", m);
 }
 function endDate(days) {
-  return new Date((selectedCharacter ? selectedAdaptation()?.computed_at || Date.now() : calculatedAt.getTime()) + days * 86400000).toLocaleDateString('ru-RU');
+  return new Date((selectedCharacter ? selectedAdaptation()?.computed_at || Date.now() : calculatedAt.getTime()) + days * 86400000).toLocaleDateString(uiLocale());
 }
-function day(value) { return `день ${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}`; }
+function day(value) { return t("app_046", value.toLocaleString(uiLocale(), { maximumFractionDigits: 2 })); }
 function levelOptions(selected, minimum = 1) {
   return roman.slice(1).map((label, i) => `<option value="${i+1}" ${selected === i+1 ? 'selected' : ''} ${i+1 < minimum ? 'disabled' : ''}>${label}</option>`).join('');
 }
@@ -98,10 +98,10 @@ function renderCatalog() {
 }
 let attributeDraft=null;
 function attributeAllocationError(values){
-  if(values.length!==5||values.some(v=>v===''||v===null||!Number.isInteger(Number(v))))return 'Укажите целые значения для всех пяти атрибутов.';
-  if(values.some(v=>Number(v)<17||Number(v)>27))return 'Каждый базовый атрибут должен быть от 17 до 27.';
+  if(values.length!==5||values.some(v=>v===''||v===null||!Number.isInteger(Number(v))))return t("app_047");
+  if(values.some(v=>Number(v)<17||Number(v)>27))return t("app_048");
   const sum=values.reduce((total,value)=>total+Number(value),0);
-  if(sum!==99)return sum<99?`Осталось распределить: ${99-sum}. Сумма должна быть 99.`:`Уберите лишние очки: ${sum-99}. Сумма должна быть 99.`;
+  if(sum!==99)return sum<99?t("app_049", 99-sum):t("app_050", sum-99);
   return '';
 }
 function rebalanceAttributes(values,index,requested){
@@ -125,7 +125,7 @@ function updateTotal(){
   const error=selectedCharacter?'':attributeAllocationError(values);
   $('attribute-total').textContent=sum===null?'— / 99':`${sum} / 99`;
   $('attribute-total').dataset.invalid=String(Boolean(error));
-  $('attribute-note').textContent=selectedCharacter?`${character?.name||'Персонаж'} · базовые атрибуты из ESI, без имплантов и бустеров. Изменяются в игре.`:'17–27 · сумма всегда 99 · остальные атрибуты балансируются автоматически';
+  $('attribute-note').textContent=selectedCharacter?t("app_051", character?.name||t("app_052")):t("app_053");
   $('attribute-error').textContent='';$('attribute-error').hidden=true;
   document.querySelectorAll('[data-attr]').forEach(input=>{
     const index=Number(input.dataset.attr),value=values[index];
@@ -133,7 +133,7 @@ function updateTotal(){
     if(input.value!==String(value??''))input.value=value??'';
     const invalid=!selectedCharacter&&(value===''||value===null||!Number.isInteger(Number(value))||Number(value)<17||Number(value)>27);
     input.setAttribute('aria-invalid',String(invalid));
-    input.setCustomValidity(invalid?'Укажите целое число от 17 до 27':'');
+    input.setCustomValidity(invalid?t("app_054"):'');
   });
 }
 
@@ -143,7 +143,7 @@ function renderControls() {
   $('queue-priority').value=plan.queue_priority||'fit_ready';
   $('remap-count').value = plan.remap_count ?? 1;
   $('implant-enabled').checked = plan.optimize_implants ?? true;
-  $('attributes').innerHTML = attrs.map((name, i) => `<div class="attr-row"><label for="attr-${i}"><span class="attr-code">${codes[i]}</span>${name}</label><input id="attr-${i}" data-attr="${i}" type="number" min="17" max="27" step="1" aria-describedby="attribute-note attribute-error" value="${plan.attributes[i]}" aria-label="${name} база"></div>`).join('');
+  $('attributes').innerHTML = attrs.map((name, i) => t("app_055", i, codes[i], name, i, i, plan.attributes[i], name)).join('');
   updateTotal();
   renderCatalog();
 }
@@ -157,9 +157,9 @@ function renderGoals() {
   const markup = plan.goals.length ? plan.goals.map((goal, i) => {
     const skill = items[goal.id]?.skill, minimum = minimums.get(goal.id) || 1;
     const name = esc(skillName(goal.id));
-    const segments=[1,2,3,4,5].map(level=>`<button class="goal-level ${level<=goal.level?'filled':''}" data-set-goal-level="${i}" data-level="${level}" aria-label="${name}: уровень ${roman[level]}" aria-pressed="${goal.level===level}" title="${roman[level]}${level<minimum?` · требуется не ниже ${roman[minimum]}`:''}" ${level<minimum?'disabled':''}></button>`).join('');
-    return `<div class="goal-row" data-goal-id="${goal.id}"><div class="goal-info"><strong title="${name}">${name}</strong><small>${skill?`${codes[skill.primary]} / ${codes[skill.secondary]}`:'Загрузка данных'}${minimums.has(goal.id)?` · минимум ${roman[minimum]}${fitMinimums().has(goal.id)?' · требуется фитом':''}`:''}</small></div><div class="goal-levels" role="group" aria-label="Целевой уровень ${name}">${segments}</div><button class="icon-button goal-remove" data-remove-goal="${i}" aria-label="Удалить ${name}" ${minimums.has(goal.id)?'disabled title="Нужен для других навыков плана"':''}>×</button></div>`;
-  }).join('') : '<div class="empty-goals">Вставьте фит или добавьте первый навык справа.</div>';
+    const segments=[1,2,3,4,5].map(level=>t("app_056", level<=goal.level?'filled':'', i, level, name, roman[level], goal.level===level, roman[level], level<minimum?t("app_057", roman[minimum]):'', level<minimum?'disabled':'')).join('');
+    return t("app_058", goal.id, name, name, skill?`${codes[skill.primary]} / ${codes[skill.secondary]}`:t("app_059"), minimums.has(goal.id)?t("app_060", roman[minimum], fitMinimums().has(goal.id)?t("app_061"):''):'', name, segments, i, name, minimums.has(goal.id)?t("app_062"):'');
+  }).join('') : t("app_063");
   const context=`${dashboardContext()}:${Boolean(planGroup)}`;
   if(markup===lastGoalsMarkup&&context===lastGoalsContext)return;
   $('goals').innerHTML=markup;lastGoalsMarkup=markup;lastGoalsContext=context;
@@ -196,11 +196,11 @@ function implantLabels(event) {
 }
 function queueEventRow(event) {
   const isRemap = event.kind === 'remap';
-  const when = event.day <= 1e-9 ? 'Перед началом обучения' : `Через ${duration(event.day)} · ${day(event.day)}`;
+  const when = event.day <= 1e-9 ? t("app_064") : t("app_065", duration(event.day), day(event.day));
   const details = isRemap
     ? `<div class="event-attributes">${codes.map((code,i) => `<span>${code} <b>${event.attributes[i]}</b></span>`).join('')}</div>`
-    : `<div class="event-items">${implantLabels(event).map(esc).join('<br>')}</div><div class="event-prerequisite">После Cybernetics ${roman[event.cybernetics]}, перед следующим навыком.</div>`;
-  return `<tr class="queue-event queue-event-${event.kind}" data-event-kind="${event.kind}" data-event-day="${event.day}"><td class="event-icon-cell" aria-hidden="true">${isRemap ? '↗' : '◇'}</td><td colspan="8"><div class="event-heading"><strong>${isRemap ? 'Сделать remap' : 'Купить и установить импланты'}</strong><span>${when}</span></div>${details}</td></tr>`;
+    : t("app_066", implantLabels(event).map(esc).join('<br>'), roman[event.cybernetics]);
+  return `<tr class="queue-event queue-event-${event.kind}" data-event-kind="${event.kind}" data-event-day="${event.day}"><td class="event-icon-cell" aria-hidden="true">${isRemap ? '↗' : '◇'}</td><td colspan="8"><div class="event-heading"><strong>${isRemap ? t("app_067") : t("app_068")}</strong><span>${when}</span></div>${details}</td></tr>`;
 }
 function renderQueue() {
   if(retainDashboardView())return;
@@ -222,7 +222,7 @@ function renderQueue() {
     const rate = days > 0 ? row.points / (days * 24) : 0;
     const rank = items[row.id]?.skill?.rank ?? '—';
     const levels = queueLevelBlocks(row,targets.get(row.id));
-    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i><span class="queue-skill-name" title="${esc(row.name)} ${roman[row.level]}">${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></span><span class="queue-tracking-slot">${queueRowTracking(row)}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" data-target="${targets.get(row.id)||row.level}" role="group" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
+    output.push(t("app_069", i===0?0:-1, i, row.id, row.level, String(i+1).padStart(2,'0'), attributeColor(row.primary, row.secondary), esc(row.name), roman[row.level], esc(row.name), roman[row.level], queueRowTracking(row), days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : '', duration(days), duration(days,true), rank, row.primary, attrs[row.primary], row.secondary, attrs[row.secondary], formatNumber(rate), targets.get(row.id)||row.level, roman[row.level], levels, i));
   }
   while (nextEvent < events.length) output.push(queueEventRow(events[nextEvent++]));
   const markup=output.join(''),context=dashboardContext();
@@ -237,7 +237,7 @@ function renderQueue() {
     $('queue').innerHTML = markup;
     $('queue').querySelectorAll('tr[data-skill-id]').forEach(row=>{
       const previous=previousInjectors.get(`${row.dataset.skillId}:${row.dataset.skillLevel}`),cell=row.querySelector('.injector-column');
-      if(previous&&cell){cell.textContent=previous.text;cell.title='Обновляем расчёт инжекторов…';cell.dataset.injectorResolved='true';cell.setAttribute('aria-busy','true');}
+      if(previous&&cell){cell.textContent=previous.text;cell.title=t("app_070");cell.dataset.injectorResolved='true';cell.setAttribute('aria-busy','true');}
     });
     scroller.scrollTop=sameContext?scrollTop:0;scroller.scrollLeft=sameContext?scrollLeft:0;
     lastQueueMarkup=markup;lastQueueContext=context;
@@ -251,25 +251,25 @@ function renderImplantStatus(){
   const personal=Boolean(selectedCharacter),character=personal?currentCharacter():null;
   const replace=personal&&(replacementChoices[selectedCharacter]??selectedAdaptation()?.replace_implants??false);
   $('implant-policy-note').textContent=personal
-    ?`Учитываются текущие импланты и Cybernetics. ${replace?'Замена установленных имплантов разрешена.':'Занятые слоты защищены от замены.'}`
-    :'+3 / +4 / +5 с учётом Cybernetics. Без ограничения по ISK, для учебного клона.';
+    ?t("app_071", replace?t("app_072"):t("app_073"))
+    :t("app_074");
   $('implant-current').hidden=!personal||!character;
   const schedule=activeSchedule(),installations=schedule?.installations||[];
   let message;
-  if(!personal&&!plan.optimize_implants)message='Покупка учебных имплантов выключена.';
-  else if(!schedule)message=plan.goals.length?'Покупки проверяются при оптимизации очереди.':'Добавьте цели, чтобы подобрать импланты.';
-  else if(!schedule.rows.length)message='Цели уже выполнены — покупки не нужны.';
+  if(!personal&&!plan.optimize_implants)message=t("app_075");
+  else if(!schedule)message=plan.goals.length?t("app_076"):t("app_077");
+  else if(!schedule.rows.length)message=t("app_078");
   else if(installations.length){
     const count=installations.reduce((sum,event)=>sum+event.purchases.filter(b=>b>0).length,0);
-    message=`В очереди: ${count} ${plural(count,['имплант','импланта','имплантов'])}, ${installations.length} ${plural(installations.length,['этап покупки','этапа покупки','этапов покупки'])}.`;
-  }else message=personal?(replace?'Новые импланты не сократили срок очереди с учётом обучения Cybernetics. Используются установленные.':'Используются установленные импланты. Чтобы сравнить их с улучшенными, разрешите замену.'):'Покупка имплантов с учётом обучения Cybernetics не сокращает эту очередь.';
+    message=t("app_079", count, plural(count,[t("app_080"),t("app_081"),t("app_082")]), installations.length, plural(installations.length,[t("app_083"),t("app_084"),t("app_085")]));
+  }else message=personal?(replace?t("app_086"):t("app_087")):t("app_088");
   $('implant-purchases').textContent=message;
 }
 function renderRecommendations() {
   const result=displayComparison();
   $('method-section').hidden = !result;
   if (!result) return;
-  $('method').textContent = `${result.searched_maps.toLocaleString('ru-RU')} распределений атрибутов. ${result.method} Fitting CPU/PG и Alpha-ограничения не проверяются. Импланты из EFT добавляют требования навыков; рекомендации относятся к отдельному учебному клону.`;
+  $('method').textContent = t("app_089", result.searched_maps.toLocaleString(uiLocale()), localizeServerText(result.method));
 }
 function renderSummary() {
   const retained=retainDashboardView();
@@ -281,14 +281,14 @@ function renderSummary() {
   if(!retained){
   $('top-time').textContent = time;
   $('top-time').title = time;
-  $('top-count').textContent = `${rows.length} ${plural(rows.length,['уровень','уровня','уровней'])} · ${unique} ${plural(unique,['навык','навыка','навыков'])}`;
-  $('top-finish').textContent = finish ? `Завершение ${finish}` : '';
-  $('top-finish').title = 'Если начать обучение сейчас';
+  $('top-count').textContent = `${rows.length} ${plural(rows.length,[t("app_090"),t("app_091"),t("app_092")])} · ${unique} ${plural(unique,[t("app_093"),t("app_094"),t("app_095")])}`;
+  $('top-finish').textContent = finish ? t("app_096", finish) : '';
+  $('top-finish').title = t("app_097");
   $('top-sp').textContent = total ? `${compactSP(total)} SP` : '';
   $('top-saving').textContent = result ? duration(result.saved_days) : '—';
-  $('top-saving-note').textContent = result ? `${(result.baseline.days ? 100*result.saved_days/result.baseline.days : 0).toFixed(1)}% меньше времени` : 'Подбор remap и имплантов';
+  $('top-saving-note').textContent = result ? t("app_098", (result.baseline.days ? 100*result.saved_days/result.baseline.days : 0).toFixed(1)) : t("app_099");
   }
-  $('remap-summary').textContent = result ? `В оптимизированном плане: ${result.optimized.remaps.length} из ${selectedCharacter ? selectedAdaptation()?.remap_count ?? 0 : plan.remap_count} remap.` : 'Моменты выбираются автоматически.';
+  $('remap-summary').textContent = result ? t("app_100", result.optimized.remaps.length, selectedCharacter ? selectedAdaptation()?.remap_count ?? 0 : plan.remap_count) : t("app_101");
   $('export-queue').disabled = !rows.length;
   $('copy-queue').disabled = !rows.length;
   if(!retained)renderRecommendations();
@@ -318,14 +318,14 @@ function mergeGoals(goals) {
 async function addSkill() {
   const name = $('skill-name').value.trim();
   if (!name) return;
-  await action('Загружаем навык и зависимости…', async () => {
+  await action(t("app_102"), async () => {
     const data = await api('/api/resolve', { name });
     items = data.items;
     mergeGoals([{ id: data.id, level: Number($('skill-level').value) }]);
     $('skill-name').value = '';
     resetCalculation(); renderCatalog(); renderGoals();
     renderDashboard();
-    notify('Навык добавлен в очередь');
+    notify(t("app_103"));
   });
 }
 async function download(name, text, type) {
@@ -352,7 +352,7 @@ document.addEventListener('input', event => {
   }
   else if (target.id === 'remap-count') {
     const count=target.valueAsNumber;
-    if(!Number.isInteger(count)||count<0||count>10){target.setCustomValidity('Укажите целое число от 0 до 10');return;}
+    if(!Number.isInteger(count)||count<0||count>10){target.setCustomValidity(t("app_104"));return;}
     target.setCustomValidity('');
     if(selectedCharacter){characterRemaps[selectedCharacter]=count;renderDashboard();queueDraft();return;}
     plan.remap_count=count;
@@ -366,7 +366,7 @@ document.addEventListener('click', event => {
   if (button.dataset.view) setView(button.dataset.view);
   if (button.dataset.removeGoal !== undefined) {
     const index = Number(button.dataset.removeGoal);
-    if (requiredLevels().has(plan.goals[index].id)) { notify('Этот навык нужен для других целей плана','error'); return; }
+    if (requiredLevels().has(plan.goals[index].id)) { notify(t("app_105"),'error'); return; }
     plan.goals.splice(index,1); invalidate();
   }
   if(button.dataset.setGoalLevel!==undefined&&!button.disabled){
@@ -389,20 +389,21 @@ $('export').addEventListener('click', () => download('skilly-plan.json', JSON.st
 $('export-queue').addEventListener('click', () => download('skilly-queue.txt', queueText(), 'text/plain;charset=utf-8'));
 $('copy-queue').addEventListener('click', async () => {
   if(!activeSchedule())return;
-  try { if (nativeDesktop) await nativeCommand('copy_text',{text:queueText()}); else await navigator.clipboard.writeText(queueText()); $('export-menu').open = false; notify('Очередь скопирована'); }
-  catch (_) { notify('Буфер обмена недоступен — скачайте .txt','error'); }
+  try { if (nativeDesktop) await nativeCommand('copy_text',{text:queueText()}); else await navigator.clipboard.writeText(queueText()); $('export-menu').open = false; notify(t("app_106")); }
+  catch (_) { notify(t("app_107"),'error'); }
 });
 $('import').addEventListener('click', () => {
-  if (nativeDesktop) action('Открываем файл плана…', async () => { const text=await nativeCommand('import_file'); if(text!==null) await importWorkspace(JSON.parse(text)); });
+  if (nativeDesktop) action(t("app_108"), async () => { const text=await nativeCommand('import_file'); if(text!==null) await importWorkspace(JSON.parse(text)); });
   else $('file').click();
 });
 $('file').addEventListener('change', async () => {
   const file=$('file').files[0]; if(!file)return;
-  await action('Открываем план…',async()=>{if(file.size>2*1024*1024)throw new Error('План больше 2 МБ');await importWorkspace(JSON.parse(await file.text()));});
+  await action(t("app_109"),async()=>{if(file.size>2*1024*1024)throw new Error(t("app_110"));await importWorkspace(JSON.parse(await file.text()));});
   $('file').value='';
 });
 $('clear').addEventListener('click', startNewPlan);
-action('Открываем локальный план…', async () => {
+initLanguage();
+action(t("app_111"), async () => {
   initJourney();initQueueControls();initTracking();
   await initPlanLibrary();
   await initCharacters();

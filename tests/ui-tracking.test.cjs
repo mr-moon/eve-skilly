@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 function setup() {
-  const context = vm.createContext({Date, Set, Map, Math, Number,esc:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;'),
+  const context = require('./i18n-helper.cjs').createContext({Date, Set, Map, Math, Number,esc:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;'),
     items:{1:{name:'Int skill',skill:{rank:1,primary:0,secondary:4}},2:{name:'Per skill',skill:{rank:1,primary:1,secondary:3}}},
     roman:['','I','II','III','IV','V'],result:{baseline:{rows:[{id:1,name:'Int skill',level:1},{id:1,name:'Int skill',level:2}]}},preview:null});
   vm.runInContext(fs.readFileSync('ui/tracking.js','utf8'),context);

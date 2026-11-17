@@ -3,7 +3,7 @@ const source=fs.readFileSync('ui/app.js','utf8');
 function setup(){
  const nodes=new Map(['attribute-total','attribute-note','attribute-error'].map(id=>[id,{dataset:{},textContent:'',hidden:true}]));
  const inputs=Array.from({length:5},(_,i)=>({dataset:{attr:String(i)},value:'',setAttribute(name,value){this[name]=value},setCustomValidity(message){this.validityMessage=message}}));
- const context=vm.createContext({selectedCharacter:null,plan:{attributes:[17,27,17,21,17]},currentCharacter:()=>({name:'Pilot',attributes:[21,17,17,27,17]}),$:id=>nodes.get(id),document:{querySelectorAll:()=>inputs}});
+ const context=require('./i18n-helper.cjs').createContext({selectedCharacter:null,plan:{attributes:[17,27,17,21,17]},currentCharacter:()=>({name:'Pilot',attributes:[21,17,17,27,17]}),$:id=>nodes.get(id),document:{querySelectorAll:()=>inputs}});
  vm.runInContext(source.slice(source.indexOf('let attributeDraft=null;'),source.indexOf('function renderControls()')),context);
  return{run:code=>vm.runInContext(code,context),nodes,inputs};
 }

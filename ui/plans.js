@@ -7,10 +7,10 @@ let saveStateError=null;
 
 async function nativeCommand(command, args = {}) {
   try { return await window.__TAURI__.core.invoke(command,args); }
-  catch (error) { throw new Error(typeof error === 'string' ? error : error.message || String(error)); }
+  catch (error) { throw new Error(localizeServerText(typeof error === 'string' ? error : error.message || String(error))); }
 }
 async function confirmAction(message) {
-  return await askDecision(message,[['cancel','Отмена'],['continue','Продолжить']])==='continue';
+  return await askDecision(message,[['cancel',t("plans_252")],['continue',t("plans_253")]])==='continue';
 }
 function askDecision(message,choices) {
   return new Promise(resolve=>{
@@ -30,7 +30,7 @@ function askDecision(message,choices) {
 }
 async function canLeaveDraft(message) {
   if(!isDirty())return true;
-  const answer=await askDecision(message,[['cancel','Отмена'],['discard','Отбросить изменения'],['save','Сохранить в библиотеку']]);
+  const answer=await askDecision(message,[['cancel',t("plans_252")],['discard',t("plans_254")],['save',t("plans_255")]]);
   if(answer==='save')return savePlan();
   return answer==='discard';
 }
@@ -77,19 +77,19 @@ function updateSaveState() {
   if(!plan)return;
   const dirty=isDirty(),error=saveStateError;
   $('save-state').hidden=!error;
-  $('save-state').textContent=error?'Ошибка сохранения':dirty?'Есть изменения':'Сохранено';
+  $('save-state').textContent=error?t("plans_256"):dirty?t("plans_257"):t("plans_258");
   $('save-state').dataset.state=error?'error':dirty?'dirty':'saved';
-  $('save-state').title=error?error.message:dirty?'Изменения ещё не сохранены в библиотеку':'План сохранён в библиотеку';
+  $('save-state').title=error?error.message:dirty?t("plans_259"):t("plans_260");
   $('save').hidden=!dirty&&!error;
   $('save').disabled=typeof attributeInputError==='function'&&Boolean(attributeInputError());
-  $('save').textContent=activePlanId?'Сохранить':'Сохранить план';
+  $('save').textContent=activePlanId?t("plans_261"):t("plans_262");
 }
 function queueDraft() {
   if(!plan) return;
   updateSaveState();
   clearTimeout(draftTimer);
-  $('draft-state').textContent='Сохраняем черновик…';
-  draftTimer=setTimeout(()=>persistDraft().catch(error=>notify(`Черновик не сохранён: ${error.message}`,'error')),450);
+  $('draft-state').textContent=t("plans_263");
+  draftTimer=setTimeout(()=>persistDraft().catch(error=>notify(t("plans_264", error.message),'error')),450);
 }
 async function persistDraft() {
   clearTimeout(draftTimer);
@@ -99,10 +99,10 @@ async function persistDraft() {
   draftChain=draftChain.catch(()=>{}).then(()=>api('/api/draft',body));
   try {
     await draftChain;
-    if(generation===draftGeneration){$('draft-state').textContent='Черновик сохранён';if(saveStateError?.scope==='draft')saveStateError=null;updateSaveState();}
+    if(generation===draftGeneration){$('draft-state').textContent=t("groups_241");if(saveStateError?.scope==='draft')saveStateError=null;updateSaveState();}
   } catch(error) {
     if(generation===draftGeneration){saveStateError={scope:'draft',message:error.message};updateSaveState();}
-    $('draft-state').textContent='Ошибка сохранения черновика';
+    $('draft-state').textContent=t("plans_265");
     throw error;
   }
 }
@@ -127,9 +127,9 @@ function applyWorkspace(workspace,id=null,savedWorkspace=null,characterId=undefi
 }
 async function savePlan(asNew=false,name=null) {
   let success=false;
-  await action('Сохраняем план в библиотеку…',async()=>{
+  await action(t("plans_266"),async()=>{
     if(name!==null) plan.name=name;
-    if(!plan.name.trim()) plan.name='Новый план';
+    if(!plan.name.trim()) plan.name=t("app_040");
     await settleDraft();
     let data;try{data=await api('/api/plans/save',{id:asNew?null:activePlanId,workspace:captureWorkspace()});}catch(error){saveStateError={scope:'library',message:error.message};updateSaveState();throw error;}
     for(const tracked of Object.values(characterState.tracked_plans||{}))if(tracked.id===data.record.id){tracked.name=data.record.workspace.plan.name;tracked.saved_at=data.record.saved_at;}
@@ -139,15 +139,15 @@ async function savePlan(asNew=false,name=null) {
     showEditor(previousTab);
     renderCharacterList();
     if(typeof renderTracking==='function')renderTracking();
-    $('draft-state').textContent='Черновик сохранён';
-    success=true;notify(`План «${plan.name}» сохранён`);
+    $('draft-state').textContent=t("groups_241");
+    success=true;notify(t("plans_267", plan.name));
   });
   return success;
 }
 async function startNewPlan() {
   if(busy) return;
-  if(!await canLeaveDraft('Создать новый план? Сохраните текущие изменения в библиотеку или отбросьте их.'))return;
-  await action('Создаём новый план…',async()=>{
+  if(!await canLeaveDraft(t("plans_268")))return;
+  await action(t("plans_269"),async()=>{
     await settleDraft();applyWorkspace({plan:newPlan()});
     showEditor(editorTab);await persistDraft();$('skill-name').focus();
   });
@@ -161,10 +161,10 @@ function renderLibrary() {
   const query=$('library-search').value.trim().toLocaleLowerCase();
   const records=libraryRecords.filter(record=>record.name.toLocaleLowerCase().includes(query) && (libraryFilter==='all'||(libraryFilter==='groups'?Boolean(record.group_members):!record.group_members)));
   $('library-list').innerHTML=records.length?records.map(record=>{
-    const savedAt=new Date(record.saved_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    const description=record.levels?`${record.levels} ${plural(record.levels,['уровень','уровня','уровней'])} · ${duration(record.days||0,true)}`:`${record.goals} целей`;
-    return `<button type="button" class="saved-plan-row" data-open-plan="${esc(record.id)}" aria-label="Открыть план ${esc(record.name)}"><span class="saved-plan-info"><strong>${esc(record.name)}${record.group_members?`<span class="active-plan-badge">ГРУППА · ${record.group_members}</span>`:''}${record.id===activePlanId?'<span class="active-plan-badge">ОТКРЫТ</span>':''}</strong><small>${description}${record.optimized?' · оптимизирован':''} · ${savedAt}</small></span></button>`;
-  }).join(''):'<div class="library-empty">'+(libraryRecords.length?'Ничего не найдено.':'Пока нет сохранённых планов.<br>Создайте план, добавьте цели и сохраните его в библиотеку.')+'</div>';
+    const savedAt=new Date(record.saved_at).toLocaleString(uiLocale(),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const description=record.levels?`${record.levels} ${plural(record.levels,[t("app_090"),t("app_091"),t("app_092")])} · ${duration(record.days||0,true)}`:t("plans_270", record.goals);
+    return t("plans_271", esc(record.id), esc(record.name), esc(record.name), record.group_members?t("plans_272", record.group_members):'', record.id===activePlanId?t("plans_273"):'', description, record.optimized?t("plans_274"):'', savedAt);
+  }).join(''):'<div class="library-empty">'+(libraryRecords.length?t("plans_275"):t("plans_276"))+'</div>';
   if(libraryFilter==='all'){
     const fits=fitRecords.filter(f=>!f.archived&&`${f.name} ${f.ship}`.toLocaleLowerCase().includes(query));
     if(fits.length){if(!records.length)$('library-list').innerHTML='';$('library-list').insertAdjacentHTML('beforeend',fitLibraryRows(fits));}
@@ -173,12 +173,12 @@ function renderLibrary() {
 async function loadLibrary() {
   const data=await api('/api/plans');libraryRecords=data.plans;await loadFitLibrary();
   $('library-warnings').hidden=!data.warnings.length;
-  $('library-warnings').textContent=data.warnings.length?`Некоторые файлы не удалось прочитать:\n${data.warnings.join('\n')}`:'';
+  $('library-warnings').textContent=data.warnings.length?t("plans_277", data.warnings.map(value=>localizeServerText(value)).join('\n')):'';
   renderLibrary();
 }
 async function openLibrary() {
   closePlanPicker();
-  await action('Открываем библиотеку…',async()=>{await loadLibrary();showPage('library');});
+  await action(t("plans_278"),async()=>{await loadLibrary();showPage('library');});
 }
 function closePlanPicker(){
   $('plan-picker').hidden=true;
@@ -193,50 +193,50 @@ function renderPlanPicker(){
       .sort((a,b)=>Number(b.id===selectedCharacter)-Number(a.id===selectedCharacter));
     const badges=characters.slice(0,3).map(character=>`<span class="plan-character-badge${character.id===selectedCharacter?' is-selected':''}" title="${esc(character.name)}">${esc(character.name)}</span>`).join('');
     const more=characters.length>3?`<span class="plan-character-badge plan-character-more" title="${esc(characters.slice(3).map(character=>character.name).join(', '))}">+${characters.length-3}</span>`:'';
-    return `<button type="button" data-picker-plan="${esc(record.id)}" aria-current="${record.id===activePlanId?'page':'false'}"><span class="plan-picker-label" title="${esc(record.name)}">${esc(record.name)}</span><span class="plan-picker-meta">${record.id===activePlanId?'<span class="plan-picker-current" aria-hidden="true">✓</span>':''}${characters.length?`<span class="plan-picker-characters">${badges}${more}</span>`:''}${record.group_members?'<span class="plan-group-badge">группа</span>':''}</span></button>`;
+    return `<button type="button" data-picker-plan="${esc(record.id)}" aria-current="${record.id===activePlanId?'page':'false'}"><span class="plan-picker-label" title="${esc(record.name)}">${esc(record.name)}</span><span class="plan-picker-meta">${record.id===activePlanId?'<span class="plan-picker-current" aria-hidden="true">✓</span>':''}${characters.length?`<span class="plan-picker-characters">${badges}${more}</span>`:''}${record.group_members?t("plans_279"):''}</span></button>`;
   };
   const assigned=records.find(record=>record.id===assignedId);
   const others=records.filter(record=>record.id!==assignedId);
-  const characterName=characterState.characters.find(character=>character.id===selectedCharacter)?.name||'Персонаж';
-  const heading=`Активный план · ${characterName}`;
+  const characterName=characterState.characters.find(character=>character.id===selectedCharacter)?.name||t("app_052");
+  const heading=t("plans_280", characterName);
   const pinned=assigned?`<div class="plan-picker-pinned" role="group" aria-label="${esc(heading)}"><div class="plan-picker-section-title" title="${esc(heading)}">${esc(heading)}</div>${renderRecord(assigned)}</div>`:'';
-  $('plan-picker-list').innerHTML=records.length?`${pinned}${assigned&&others.length?'<div class="plan-picker-section-title">Остальные планы</div>':''}${others.map(renderRecord).join('')}`:`<p class="muted-note">${query?'Планы не найдены':'Пока нет сохранённых планов'}</p>`;
+  $('plan-picker-list').innerHTML=records.length?`${pinned}${assigned&&others.length?t("plans_281"):''}${others.map(renderRecord).join('')}`:`<p class="muted-note">${query?t("plans_282"):t("plans_283")}</p>`;
 }
 async function togglePlanPicker(){
   if(!$('plan-picker').hidden){closePlanPicker();return;}
   if(busy)return;
   $('plan-picker-search').value='';
-  $('plan-picker-list').textContent='Загружаем планы…';
+  $('plan-picker-list').textContent=t("plans_284");
   $('plan-picker').hidden=false;
   $('library-open').setAttribute('aria-expanded','true');
-  await action('Загружаем планы…',async()=>{
+  await action(t("plans_284"),async()=>{
     try{const data=await api('/api/plans');libraryRecords=data.plans;renderPlanPicker();}
-    catch(error){$('plan-picker-list').textContent='Не удалось загрузить планы';throw error;}
+    catch(error){$('plan-picker-list').textContent=t("plans_285");throw error;}
   });
   if(!$('plan-picker').hidden)$('plan-picker-search').focus();
 }
 function showNameDialog(operation) {
   if(busy)return;
   nameOperation=operation;
-  $('name-dialog-title').textContent='Сохранить как';
+  $('name-dialog-title').textContent=t("plans_286");
   $('plan-new-name').value=operation.name;
   $('name-dialog').showModal();$('plan-new-name').focus();$('plan-new-name').select();
 }
 async function openSavedPlan(id,characterId=undefined) {
   if(busy)return;
-  if(!await canLeaveDraft('Открыть другой план? В текущем черновике есть изменения, не сохранённые в библиотеку.'))return;
-  await action('Открываем сохранённую очередь…',async()=>{
+  if(!await canLeaveDraft(t("plans_287")))return;
+  await action(t("plans_288"),async()=>{
     await settleDraft();const data=await api('/api/plans/open',{id});items=data.items;
     applyWorkspace(data.record.workspace,data.record.id,data.record.workspace,characterId);
-    showEditor(editorTab);queueDraft();notify('План открыт');
+    showEditor(editorTab);queueDraft();notify(t("plans_289"));
   });
 }
 async function importWorkspace(raw) {
-  if(raw.workspace&&raw.schema_version!==1)throw new Error('Неподдерживаемая версия файла плана');
+  if(raw.workspace&&raw.schema_version!==1)throw new Error(t("plans_290"));
   const workspace=raw.workspace||{plan:raw,eft:'',result:null,preview:null,calculation_key:null,schedule_mode:'optimized'};
   const data=await api('/api/workspace/prepare',workspace);
-  if(isDirty()&&!await confirmAction('Открыть файл и отменить несохранённые изменения текущего плана?'))return;
-  await settleDraft();items=data.items;applyWorkspace(data.workspace);queueDraft();notify('План открыт. Сохраните его в библиотеку.');
+  if(isDirty()&&!await confirmAction(t("plans_291")))return;
+  await settleDraft();items=data.items;applyWorkspace(data.workspace);queueDraft();notify(t("plans_292"));
 }
 async function initPlanLibrary() {
   $('library-open').addEventListener('click',togglePlanPicker);
@@ -253,7 +253,7 @@ async function initPlanLibrary() {
   $('library-close').addEventListener('click',()=>showEditor(editorTab));
   $('library-new').addEventListener('click',startNewPlan);
   $('library-search').addEventListener('input',renderLibrary);
-  $('library-save-as').addEventListener('click',()=>showNameDialog({kind:'save-as',name:Array.from(activePlanId?`${plan.name} — копия`:plan.name).slice(0,120).join('')}));
+  $('library-save-as').addEventListener('click',()=>showNameDialog({kind:'save-as',name:Array.from(activePlanId?t("plans_293", plan.name):plan.name).slice(0,120).join('')}));
   $('name-cancel').addEventListener('click',()=>$('name-dialog').close());
   $('library-list').addEventListener('click',event=>{
     const row=event.target.closest('[data-open-plan]');
@@ -275,7 +275,7 @@ async function initPlanLibrary() {
     await window.__TAURI__.event.listen('skilly-close-requested',async()=>{
       if(closingNative)return;closingNative=true;
       try{await persistDraft();await nativeCommand('finish_close');}
-      catch(error){closingNative=false;notify(`Не удалось сохранить черновик: ${error.message}`,'error');}
+      catch(error){closingNative=false;notify(t("plans_294", error.message),'error');}
     });
     await nativeCommand('frontend_ready');
   }else{

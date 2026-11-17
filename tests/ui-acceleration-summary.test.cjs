@@ -15,7 +15,7 @@ function node(){
 }
 function setup(){
   const nodes=new Map(),pending=[],timers=new Map(),cells=[];let next=0;
-  const context=vm.createContext({Date,JSON,document:{activeElement:null,querySelectorAll:()=>cells},roman:['0','I','II','III','IV','V'],
+  const context=require('./i18n-helper.cjs').createContext({Date,JSON,document:{activeElement:null,querySelectorAll:()=>cells},roman:['0','I','II','III','IV','V'],
     $:id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id);},
     duration:days=>`${days}d`,formatNumber:n=>String(n),
     setTimeout:fn=>{timers.set(++next,fn);return next;},clearTimeout:id=>timers.delete(id),

@@ -521,3 +521,30 @@ dialog.fit-editor-dialog[open]{width:min(900px,calc(100vw - 32px));height:min(76
 .skill-table .level-block.filled{background:#a3cbbf}
 .skill-table .level-block.is-queued{background:#658c99}
 .skill-table .level-block.is-partial{background:linear-gradient(135deg,#acd8c9 0 49%,#303435 51% 100%)}
+
+
+html[lang=en] .tracking-action-link{grid-template-columns:88px minmax(0,1fr) auto}
+.tracking-action-link time{overflow:hidden;text-overflow:ellipsis}
+
+/* One height and spacing scale for the header controls. */
+.editor-header{--header-control-height:38px;gap:12px}
+.editor-header .plan-heading{gap:12px}
+.editor-header .editor-actions{gap:8px}
+.editor-header .plan-switcher-field,.editor-header .character-context-group{height:var(--header-control-height)}
+.editor-header .character-context-group>button{height:calc(var(--header-control-height) - 2px);font-size:12px}
+.editor-header .character-context-group #character-active{font-size:12px;line-height:13px;padding:3px 10px}
+.editor-header #character-active small{font-size:10px;line-height:12px}
+.editor-header .character-context-group #character-picker-toggle,.editor-header .character-context-group .character-manage{width:36px;padding:0}
+.editor-header .editor-actions>#copy-queue,.editor-header .plan-title-row>#save{height:var(--header-control-height);padding:0 12px;font-size:12px;line-height:1;border-radius:7px}
+.editor-header #export-menu>summary{display:grid;place-items:center;width:var(--header-control-height);height:var(--header-control-height);padding:0;line-height:1;border-radius:7px}
+.editor-header #export-menu>summary::-webkit-details-marker{display:none}
+.editor-header #export-menu>summary svg{display:block}
+.editor-header .export-options{top:calc(100% + 6px)}
+.editor-header .export-options button{height:34px;padding:0 10px;font-size:12px;line-height:1.3;border-radius:5px}
+.language-menu{margin-top:5px;padding-top:5px;border-top:1px solid var(--line)}
+.language-menu-label{display:flex;align-items:center;gap:8px;padding:6px 10px;color:var(--quiet);font-size:11px;line-height:16px}
+.language-menu-icon{display:block;flex:0 0 16px}
+.editor-header .export-options .language-menu [data-language]{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-left:34px}
+.language-menu [data-language] svg{visibility:hidden;flex-shrink:0}
+.language-menu [data-language][aria-pressed=true]{color:var(--accent)}
+.language-menu [data-language][aria-pressed=true] svg{visibility:visible}

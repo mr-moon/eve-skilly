@@ -36,17 +36,17 @@ async function checkBoundQueue(character) {
   }
 }
 function boundQueueStatus(schedule, character, now = Date.now()) {
-  if (character.queue == null) return {state:'pending', text:'Нужны данные очереди ESI'};
-  if (!schedule) return {state:'pending', text:'Сверяем с привязанным планом…'};
+  if (character.queue == null) return {state:'pending', text:t("tracking_301")};
+  if (!schedule) return {state:'pending', text:t("tracking_302")};
   const relation = compareActualQueue(schedule, character, now);
   if (!relation.actual.length) return relation.planned.length
-    ? {state:'warning', text:'Очередь пуста — план не запущен', relation}
-    : {state:'matched', text:'План изучен', relation};
-  if (relation.prefix === relation.actual.length) return {state:'matched', text:'Очередь следует привязанному плану', relation};
+    ? {state:'warning', text:t("tracking_303"), relation}
+    : {state:'matched', text:t("tracking_304"), relation};
+  if (relation.prefix === relation.actual.length) return {state:'matched', text:t("tracking_305"), relation};
   const index = relation.prefix, expected = relation.planned[index], actual = relation.actual[index];
   const label = row => `${trackingName(row.skill_id ?? row.id)} ${roman[row.finished_level ?? row.level]}`;
-  return {state:'warning', text:`Очередь отличается от привязанного плана · №${index + 1}`,
-    detail:expected ? `В игре: ${label(actual)}. По плану: ${label(expected)}.` : `В игре: ${label(actual)}. Этот уровень не предусмотрен оставшейся очередью плана.`, relation};
+  return {state:'warning', text:t("tracking_306", index + 1),
+    detail:expected ? t("tracking_307", label(actual), label(expected)) : t("tracking_308", label(actual)), relation};
 }
 function renderBoundQueueStatus(character) {
   const tracked = trackedPlan(character.id), node = $('bound-queue-status');
@@ -54,13 +54,13 @@ function renderBoundQueueStatus(character) {
   $('actual-queue-comparison').hidden = !tracked;
   if (!tracked) return;
   const check = boundQueueCheck(character);
-  const status = check?.error ? {state:'error', text:'Не удалось сверить очередь', detail:check.error}
+  const status = check?.error ? {state:'error', text:t("tracking_309"), detail:check.error}
     : boundQueueStatus(check?.schedule, character);
   node.dataset.state = status.state;
-  $('bound-queue-message').textContent = status.state==='matched' ? (status.relation?.actual.length ? '✓ По плану' : '✓ План изучен') : status.state==='warning' ? (status.relation?.actual.length ? `⚠ Расхождение · №${status.relation.prefix+1}` : '⚠ Очередь пуста') : status.state==='error' ? '⚠ Ошибка сверки' : 'Сверяем очередь…';
-  $('bound-queue-message').title = [status.text,tracked.name,status.detail,'Нажмите, чтобы открыть подробности'].filter(Boolean).join('. ');
+  $('bound-queue-message').textContent = status.state==='matched' ? (status.relation?.actual.length ? t("tracking_310") : t("tracking_311")) : status.state==='warning' ? (status.relation?.actual.length ? t("tracking_312", status.relation.prefix+1) : t("tracking_313")) : status.state==='error' ? t("tracking_314") : t("tracking_315");
+  $('bound-queue-message').title = [status.text,tracked.name,status.detail,t("tracking_316")].filter(Boolean).join('. ');
   $('bound-queue-plan').textContent = tracked.name;
-  $('bound-queue-plan').title = `Открыть привязанный план «${tracked.name}»`;
+  $('bound-queue-plan').title = t("tracking_317", tracked.name);
   $('bound-queue-detail').textContent = status.detail || '';
   $('bound-queue-detail').title = status.detail || '';
   $('bound-queue-detail').hidden = !status.detail;
@@ -70,7 +70,7 @@ function trackingSkill(id) {
   return items[id]?.skill || trackingItems[id]?.skill;
 }
 function trackingName(id) {
-  return items[id]?.name || trackingItems[id]?.name || `Навык #${id}`;
+  return items[id]?.name || trackingItems[id]?.name || t("tracking_318", id);
 }
 function skillPoints(rank, level) {
   return level ? Math.ceil(250 * rank * Math.pow(2, 2.5 * (level - 1))) : 0;
@@ -169,7 +169,7 @@ function queueLevelBlocks(row, target, now = Date.now()) {
   }
   return [1,2,3,4,5].map(level => {
     const current = level === row.level ? state : null;
-    const title = current ? `${roman[level]} · ${current.state==='training'?'Изучается':'Частично изучен, не обучается'} · ${current.progress.toFixed(1)}%` : `${roman[level]}`;
+    const title = current ? `${roman[level]} · ${current.state==='training'?t("tracking_319"):t("tracking_320")} · ${current.progress.toFixed(1)}%` : `${roman[level]}`;
     const base=character ? (rank && trained>=skillPoints(rank,level) ? 'filled' : queued.has(`${row.id}-${level}`) ? 'is-queued' : '') : level<=row.level?'filled':level<=target?'future':'';
     return `<i class="level-block ${current ? `is-${current.state}` : base}" title="${esc(title)}" aria-label="${esc(title)}"></i>`;
   }).join('');
@@ -181,18 +181,18 @@ function queueRowTracking(row) {
   if (index < 0) return '';
   const entry = queue[index], current = trainingEntry(character);
   if (entry === current) return '';
-  return `<span class="queue-row-status">В очереди ESI · №${entry.queue_position + 1}</span>`;
+  return t("tracking_321", entry.queue_position + 1);
 }
 function learnedQueueRows() {
   if (!selectedCharacter || !showLearnedSkills) return '';
   const rows = learnedPlanRows(currentCharacter());
   if (!rows.length) return '';
-  return `<tr class="learned-heading"><td colspan="9">Изучено по плану · ${rows.length} уровней</td></tr>` + rows.map(row =>
-    `<tr class="learned-skill-row" data-skill-id="${row.id}" data-skill-level="${row.level}"><td>✓</td><td>${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></td><td colspan="7">Изучено</td></tr>`
+  return t("tracking_322", rows.length) + rows.map(row =>
+    t("tracking_323", row.id, row.level, esc(row.name), roman[row.level])
   ).join('');
 }
 function trackingTime(time) {
-  return new Date(time).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  return new Date(time).toLocaleString(uiLocale(), {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false});
 }
 function eventAnchor(event, schedule, relation, computedAt) {
   const row = schedule.rows.find(row => row.start_day + 1e-8 >= event.day);
@@ -228,17 +228,17 @@ function plannedTrackingActions(schedule, character, relation, computedAt) {
     .sort((a,b)=>a.anchor.time-b.anchor.time);
 }
 function trackingActionCards(schedule, character, relation) {
-  if (!schedule) return '<p class="muted-note">Обновляем действия по плану…</p>';
+  if (!schedule) return t("tracking_324");
   const now=Date.now(),computedAt=selectedAdaptation()?.computed_at||now;
   const actions=plannedTrackingActions(schedule,character,relation,computedAt);
   return actions.map(({event,anchor})=>{
-    const label=event.kind==='remap'?'Сделать remap':event.kind==='book'?`Книга: ${event.name}`:'Установить импланты';
+    const label=event.kind==='remap'?t("app_067"):event.kind==='book'?t("tracking_325", event.name):t("tracking_326");
     const remaining=Math.max(0,(anchor.time-now)/86400000);
-    const countdown=remaining>0?`через ${duration(remaining,true)}`:'Сейчас';
-    const source=anchor.aligned?'По очереди ESI':'Прогноз по плану';
+    const countdown=remaining>0?t("tracking_327", duration(remaining,true)):t("tracking_328");
+    const source=anchor.aligned?t("tracking_329"):t("tracking_330");
     const detail=event.kind==='implant'?implantLabels(event).join(', '):event.kind==='remap'?codes.map((code,index)=>`${code} ${event.attributes[index]}`).join(' · '):event.name;
-    return `<button type="button" class="tracking-action-link" data-tracking-jump="${event.kind}" data-action-day="${event.day}" ${event.kind==='book'?`data-action-book="${event.id}"`:''} title="${esc(`${label} · ${detail}. ${source}. Перейти к действию в очереди.`)}"><time title="${source}">${anchor.aligned?'':'≈ '}${trackingTime(anchor.time)}</time><span class="tracking-action-label">${esc(label)}</span><span class="tracking-action-countdown">${countdown}</span></button>`;
-  }).join('')||'<p class="muted-note">Дополнительных действий нет.</p>';
+    return `<button type="button" class="tracking-action-link" data-tracking-jump="${event.kind}" data-action-day="${event.day}" ${event.kind==='book'?`data-action-book="${event.id}"`:''} title="${esc(t("tracking_331", label, detail, source))}"><time title="${source}">${anchor.aligned?'':'≈ '}${trackingTime(anchor.time)}</time><span class="tracking-action-label">${esc(label)}</span><span class="tracking-action-countdown">${countdown}</span></button>`;
+  }).join('')||t("tracking_332");
 }
 function jumpToTrackingAction(button) {
   if(!activeSchedule())return;
@@ -246,7 +246,7 @@ function jumpToTrackingAction(button) {
   const target=kind==='book'
     ?Array.from(document.querySelectorAll('#queue [data-book-id]')).find(row=>row.dataset.bookId===button.dataset.actionBook)
     :Array.from(document.querySelectorAll('#queue [data-event-kind]')).find(row=>row.dataset.eventKind===kind&&row.dataset.eventDay===button.dataset.actionDay);
-  if(!target){notify('Очередь обновилась. Выберите действие ещё раз.','error');return;}
+  if(!target){notify(t("tracking_333"),'error');return;}
   document.querySelectorAll('#queue .queue-event-target').forEach(row=>row.classList.remove('queue-event-target'));
   target.classList.add('queue-event-target');
   target.setAttribute('tabindex','-1');
@@ -255,15 +255,15 @@ function jumpToTrackingAction(button) {
 }
 function renderActualQueue(character) {
   const now = Date.now(), current = trainingEntry(character, now), queue = actualQueue(character, now);
-  $('actual-queue-title').textContent = `Очередь · ${character.name}`;
-  $('actual-queue-updated').textContent = `Данные ESI от ${trackingTime(character.fetched_at)}. Время обучения между обновлениями — прогноз по снимку.`;
+  $('actual-queue-title').textContent = t("tracking_334", character.name);
+  $('actual-queue-updated').textContent = t("tracking_335", trackingTime(character.fetched_at));
   const planKeys = new Set((activeSchedule()?.rows || []).map(queueKey));
   $('actual-queue-list').innerHTML = queue.map(entry => {
     const active = entry === current, finish = queueDate(entry.finish_date), start = queueDate(entry.start_date);
     const inPlan = planKeys.has(queueKey(entry));
-    const timing = active ? `Осталось ${duration((finish-now)/86400000)}` : start !== null ? `Начало ${trackingTime(start)}` : 'Обучение приостановлено';
-    return `<div class="actual-queue-row ${active?'is-training':''}"><span>${entry.queue_position+1}</span><div><strong>${esc(trackingName(entry.skill_id))} ${roman[entry.finished_level]}</strong><small>${active?'Изучается · ':''}${timing}${inPlan?' · в плане':' · вне плана'}</small></div>${active?'<span class="training-dot" aria-hidden="true">●</span>':''}</div>`;
-  }).join('') || `<p class="muted-note">${character.queue == null?'Полная очередь ещё не загружена. Обновите данные ESI.':'По последнему снимку активная очередь пуста.'}</p>`;
+    const timing = active ? t("tracking_336", duration((finish-now)/86400000)) : start !== null ? t("tracking_337", trackingTime(start)) : t("tracking_338");
+    return `<div class="actual-queue-row ${active?'is-training':''}"><span>${entry.queue_position+1}</span><div><strong>${esc(trackingName(entry.skill_id))} ${roman[entry.finished_level]}</strong><small>${active?t("tracking_339"):''}${timing}${inPlan?t("tracking_340"):t("tracking_341")}</small></div>${active?'<span class="training-dot" aria-hidden="true">●</span>':''}</div>`;
+  }).join('') || `<p class="muted-note">${character.queue == null?t("tracking_342"):t("tracking_343")}</p>`;
 }
 function renderTracking() {
   if(typeof retainDashboardView==='function'&&retainDashboardView())return;
@@ -276,15 +276,15 @@ function renderTracking() {
   const schedule = activeSchedule(), relation = compareActualQueue(schedule, character);
   const learned = learnedPlanRows(character);
   $('show-learned').checked = showLearnedSkills;
-  $('show-learned-count').textContent = 'Показывать изученные';
+  $('show-learned-count').textContent = t("tracking_344");
   const total = learned.length + (schedule?.rows.length || 0);
-  $('tracking-progress-note').textContent = schedule ? `${learned.length} / ${total} изучено` : '';
+  $('tracking-progress-note').textContent = schedule ? t("tracking_345", learned.length, total) : '';
   const trackingError = trackingErrors.get(character.id);
   $('tracking-refresh').disabled = Boolean(trackingRefresh);
   $('tracking-refresh').classList.toggle('tracking-refreshing', Boolean(trackingRefresh));
   $('tracking-refresh').classList.toggle('tracking-error', Boolean(trackingError));
-  $('tracking-refresh').title = trackingError ? `Ошибка ESI: ${trackingError}. Нажмите для повтора.` : `ESI: ${trackingTime(character.fetched_at)} · автообновление каждые 5 минут. Обновить сейчас.`;
-  $('tracking-actions').innerHTML = character.queue == null ? '<p class="muted-note">Загружаем очередь и условия ближайших действий…</p>' : trackingActionCards(schedule,character,relation);
+  $('tracking-refresh').title = trackingError ? t("tracking_346", trackingError) : t("tracking_347", trackingTime(character.fetched_at));
+  $('tracking-actions').innerHTML = character.queue == null ? t("tracking_348") : trackingActionCards(schedule,character,relation);
   if ($('actual-queue-dialog').open) renderActualQueue(character);
   if (schedule || !plan.goals.length) loadTrackingDetails(character);
 }
@@ -295,7 +295,7 @@ async function loadTrackingDetails(character) {
   try {
     const catalog = await api('/api/characters/queue-items',{id:character.id});
     Object.assign(trackingItems,catalog.items);
-    if (catalog.warnings?.length) trackingErrors.set(character.id,catalog.warnings.join(' '));
+    if (catalog.warnings?.length) trackingErrors.set(character.id,catalog.warnings.map(value=>localizeServerText(value)).join(' '));
     trackingLoaded.add(key);
     if (selectedCharacter === character.id) { renderTracking(); renderQueue(); paintAccelerationSummary(); }
   } catch(error) {

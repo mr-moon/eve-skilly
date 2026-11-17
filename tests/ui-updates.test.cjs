@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function setup(update,desktop=true){
   const nodes=new Map(),calls=[];
-  const context=vm.createContext({nativeDesktop:desktop,
+  const context=require('./i18n-helper.cjs').createContext({nativeDesktop:desktop,
     $:id=>{if(!nodes.has(id))nodes.set(id,{hidden:true,handlers:{},addEventListener(event,fn){this.handlers[event]=fn;}});return nodes.get(id);},
     nativeCommand:async command=>{calls.push(command);if(update instanceof Error)throw update;return update;},
     notify:()=>{throw new Error('Startup errors should be silent');}

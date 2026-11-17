@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function setup(){
   const nodes=new Map();
-  const context=vm.createContext({window:{},$:id=>{if(!nodes.has(id))nodes.set(id,{value:'',innerHTML:''});return nodes.get(id);},
+  const context=require('./i18n-helper.cjs').createContext({window:{},$:id=>{if(!nodes.has(id))nodes.set(id,{value:'',innerHTML:''});return nodes.get(id);},
     esc:value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))});
   vm.runInContext(`let selectedCharacter=1,characterState={characters:[{id:1,name:'Alice & Co'},{id:2,name:'Bob'}],tracked_plans:{1:{id:'b'},2:{id:'b'}}};
     function trackedPlan(id){return characterState.tracked_plans[id];}

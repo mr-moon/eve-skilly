@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const engine=fs.readFileSync('ui/auto-optimizer.js','utf8');
 function setup(){
   const requests=[],pending=[],timers=new Map();let nextTimer=0;
-  const context=vm.createContext({Date,JSON,setTimeout:(fn,ms)=>{timers.set(++nextTimer,{fn,ms});return nextTimer;},clearTimeout:id=>timers.delete(id),
+  const context=require('./i18n-helper.cjs').createContext({Date,JSON,setTimeout:(fn,ms)=>{timers.set(++nextTimer,{fn,ms});return nextTimer;},clearTimeout:id=>timers.delete(id),
     api:(path,body)=>new Promise((resolve,reject)=>{requests.push({path,body});pending.push({resolve,reject});})});
   vm.runInContext(`let revision=1,busy=false,plan={name:'Plan',goals:[{id:1,level:3}],remap_count:1},result=null,calculationKey=null,preview=null,items={},calculatedAt=null,scheduleMode='optimized',selectedCharacter=null,characterRemaps={},replacementChoices={},characterExtraRemaps={},adaptations=[];
     function currentCharacter(){return {fetched_at:42};}

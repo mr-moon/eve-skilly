@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-function setup(){const c=vm.createContext({Set,Map,JSON,roman:['','I','II','III','IV','V']});vm.runInContext(fs.readFileSync('ui/queue-controls.js','utf8'),c);return code=>vm.runInContext(code,c);}
+function setup(){const c=require('./i18n-helper.cjs').createContext({Set,Map,JSON,roman:['','I','II','III','IV','V']});vm.runInContext(fs.readFileSync('ui/queue-controls.js','utf8'),c);return code=>vm.runInContext(code,c);}
 const rows=[{id:1,name:'First',level:1,start_day:0,end_day:1},{id:1,name:'First',level:2,start_day:1,end_day:3},{id:2,name:'Second',level:3,start_day:3,end_day:6},{id:3,name:'Third',level:1,start_day:6,end_day:7}];
 test('book events appear once per skill exactly before its first remaining level',()=>{const run=setup();run(`let schedule={rows:${JSON.stringify(rows)}};`);assert.equal(run('JSON.stringify(queueBookEvents(schedule).map(e=>[e.id,e.index,e.day]))'),'[[1,0,0],[2,2,3],[3,3,6]]');});
 test('already injected skills, including zero SP skills, require no book event',()=>{const run=setup();run(`let schedule={rows:${JSON.stringify(rows)}};`);assert.equal(run('JSON.stringify(queueBookEvents(schedule,[1,2]).map(e=>e.id))'),'[3]');assert.equal(run('queueBookEvents(null).length'),0);});
@@ -9,7 +9,7 @@ test('selection survives price-only repaint and resets for changed order or char
 function shortcuts(nativeDesktop){
  const handlers={},writes=[];let input=false;
  const queue={addEventListener(){},contains(){return !input}};
- const ctx=vm.createContext({Set,Map,JSON,roman:['','I','II','III','IV','V'],nativeDesktop,
+ const ctx=require('./i18n-helper.cjs').createContext({Set,Map,JSON,roman:['','I','II','III','IV','V'],nativeDesktop,
  $:id=>id==='queue'?queue:{addEventListener(){}},document:{activeElement:{},addEventListener:(name,fn)=>handlers[name]=fn,querySelector:()=>null},
  activeSchedule:()=>({rows}),notify(){},nativeCommand:async(name,args)=>writes.push({name,...args})});
  vm.runInContext(fs.readFileSync('ui/queue-controls.js','utf8'),ctx);vm.runInContext('initQueueControls();selectQueueIndex(0,4);selectQueueIndex(1,4,{shift:true});',ctx);

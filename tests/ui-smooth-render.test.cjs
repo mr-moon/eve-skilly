@@ -6,7 +6,7 @@ function setup(){
      get innerHTML(){return html;},set innerHTML(value){html=value;this.writes++;},querySelectorAll:()=>[],setAttribute(){},classList:{toggle(){}}});}
    return nodes.get(id);
  }};
- const context=vm.createContext({document,window:{},Date,Set,Map,JSON});
+ const context=require('./i18n-helper.cjs').createContext({document,window:{},Date,Set,Map,JSON});
  const source=fs.readFileSync('ui/app.js','utf8');
  vm.runInContext(source.slice(0,source.indexOf("document.addEventListener('input'")),context);
  vm.runInContext(`let activePlanId='a',selectedCharacter=null,showLearnedSkills=false,fresh=true;

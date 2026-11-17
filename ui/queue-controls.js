@@ -31,19 +31,19 @@ function paintQueueSelection(){
     row.classList.toggle('queue-selected',selected);row.setAttribute('aria-selected',String(selected));
   });
   const count=queueSelection.indices.size;
-  $('queue-selection-status').textContent=count?`Выбрано: ${count} · Ctrl+C`:'Shift + клик · Ctrl+C';
+  $('queue-selection-status').textContent=count?t("queue_controls_295", count):t("queue_controls_296");
   $('queue-selection-clear').hidden=!count;
 }
 function renderBookEvent(event){
-  const when=event.day<=1e-9?'Перед началом обучения':`Через ${duration(event.day)} · ${day(event.day)}`;
-  return `<tr class="queue-event queue-event-book" data-book-id="${event.id}"><td class="event-icon-cell" aria-hidden="true">▤</td><td colspan="8"><div class="event-heading"><strong>Купить и изучить книгу · ${esc(event.name)}</strong><span>${when}</span></div><span class="book-event-cost" data-book-price-id="${event.id}">Цена Jita загружается…</span></td></tr>`;
+  const when=event.day<=1e-9?t("app_064"):t("app_065", duration(event.day), day(event.day));
+  return t("queue_controls_297", event.id, esc(event.name), when, event.id);
 }
 function paintQueueBookPrices(){
   const current=typeof bookReport!=='undefined'&&bookReport&&bookRequestKey===bookContextKey();
   const prices=new Map(current?bookReport.rows.map(r=>[r.id,r.price]):[]);
   document.querySelectorAll('[data-book-price-id]').forEach(node=>{
     const price=prices.get(Number(node.dataset.bookPriceId));
-    node.textContent=current?(Number.isFinite(price)?`${isk(price)} · Jita 4-4`:'Нет цены Jita'):'Цена Jita загружается…';
+    node.textContent=current?(Number.isFinite(price)?`${isk(price)} · Jita 4-4`:t("books_126")):t("queue_controls_298");
   });
 }
 function initQueueControls(){
@@ -74,13 +74,13 @@ function initQueueControls(){
   document.addEventListener('copy',event=>{
     if(!canCopy(event)||!event.clipboardData)return;
     event.clipboardData.setData('text/plain',selectedQueueText(activeSchedule()));event.preventDefault();
-    notify(`Скопировано уровней: ${queueSelection.indices.size}`);
+    notify(t("queue_controls_299", queueSelection.indices.size));
   });
   document.addEventListener('keydown',async event=>{
     if(!(event.ctrlKey||event.metaKey)||!(event.code==='KeyC'||event.key.toLowerCase()==='c')||!canCopy(event))return;
     if(!nativeDesktop)return; // Browser copy event writes synchronously without clipboard permissions.
     event.preventDefault();const text=selectedQueueText(activeSchedule());
-    try{await nativeCommand('copy_text',{text});notify(`Скопировано уровней: ${queueSelection.indices.size}`);}
-    catch(error){notify('Не удалось скопировать выбранные навыки','error');}
+    try{await nativeCommand('copy_text',{text});notify(t("queue_controls_299", queueSelection.indices.size));}
+    catch(error){notify(t("queue_controls_300"),'error');}
   });
 }

@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 function setup(){
- const nodes=new Map();const ctx=vm.createContext({JSON,Map,Date,Boolean,window:{},
+ const nodes=new Map();const ctx=require('./i18n-helper.cjs').createContext({JSON,Map,Date,Boolean,window:{},
  $:id=>{if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',hidden:true,title:'',dataset:{}});return nodes.get(id);},
  setTimeout:()=>0,clearTimeout:()=>{}});
  vm.runInContext(`let plan={name:'Plan A',goals:[{id:1,level:3}]},result=null,preview=null,adaptations=[],selectedCharacter=null,characterRemaps={},replacementChoices={},characterExtraRemaps={},planGroup=null,accelerationSettings={},scheduleMode='optimized',calculatedAt=new Date(),apiError=null;

@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),vm=require(
 const source=fs.readFileSync('ui/fits.js','utf8');
 function setup(){
  const nodes=new Map(),pending=[];
- const context=vm.createContext({JSON,Map,Date,String,Number,
+ const context=require('./i18n-helper.cjs').createContext({JSON,Map,Date,String,Number,
  $:id=>{if(!nodes.has(id))nodes.set(id,{value:'',innerHTML:'',textContent:'',checked:false,replaceChildren(){this.innerHTML='';}});return nodes.get(id);},
  api:()=>new Promise((resolve,reject)=>pending.push({resolve,reject})),
  document:{querySelectorAll:()=>[]},setTimeout:()=>0,clearTimeout:()=>{}});
@@ -44,7 +44,7 @@ test('fit preview consolidates repeated items and ignores Pyfa mutation metadata
 });
 function progressSetup(){
  const nodes=new Map(),pending=[],control={inert:false},close={disabled:false},bar={hidden:true};
- const ctx=vm.createContext({JSON,Map,Date,String,Number,Array,
+ const ctx=require('./i18n-helper.cjs').createContext({JSON,Map,Date,String,Number,Array,
  $:id=>{if(!nodes.has(id))nodes.set(id,{textContent:'',value:'typed fit',hidden:true,dataset:{},setAttribute(name,value){this[name]=value},querySelector:()=>bar,querySelectorAll:selector=>selector==='[data-fit-controls]'?[control]:[close]});return nodes.get(id);},
  document:{querySelectorAll:()=>[]},api:()=>new Promise((resolve,reject)=>pending.push({resolve,reject})),setTimeout:()=>0,clearTimeout:()=>{}});
  vm.runInContext(source,ctx);return{run:code=>vm.runInContext(code,ctx),nodes,pending,control,close,bar};

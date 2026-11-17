@@ -13,8 +13,8 @@ function optimizationKey(){
 function optimizationMessage(){
   if(typeof attributeInputError==='function'&&attributeInputError())return attributeInputError();
   const failed=optimizationFailure?.key===optimizationKey()?optimizationFailure:null;
-  if(failed)return `Не удалось оптимизировать: ${failed.message}.${failed.attempts<3?' Повторяем автоматически…':' Следующая попытка — после изменения данных или повторного открытия плана.'}`;
-  return 'Оптимизируем очередь…';
+  if(failed)return t("auto_optimizer_112", failed.message, failed.attempts<3?t("auto_optimizer_113"):t("auto_optimizer_114"));
+  return t("auto_optimizer_115");
 }
 function scheduleOptimization(delay=350){
   if(optimizationTask&&optimizationTask.key!==optimizationKey())optimizationTask=null;
