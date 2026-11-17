@@ -51,13 +51,14 @@ function boundQueueStatus(schedule, character, now = Date.now()) {
 function renderBoundQueueStatus(character) {
   const tracked = trackedPlan(character.id), node = $('bound-queue-status');
   node.hidden = !tracked;
+  $('actual-queue-comparison').hidden = !tracked;
   if (!tracked) return;
   const check = boundQueueCheck(character);
   const status = check?.error ? {state:'error', text:'Не удалось сверить очередь', detail:check.error}
     : boundQueueStatus(check?.schedule, character);
   node.dataset.state = status.state;
-  $('bound-queue-message').textContent = status.text;
-  $('bound-queue-message').title = [status.text,status.detail].filter(Boolean).join('. ');
+  $('bound-queue-message').textContent = status.state==='matched' ? (status.relation?.actual.length ? '✓ По плану' : '✓ План изучен') : status.state==='warning' ? (status.relation?.actual.length ? `⚠ Расхождение · №${status.relation.prefix+1}` : '⚠ Очередь пуста') : status.state==='error' ? '⚠ Ошибка сверки' : 'Сверяем очередь…';
+  $('bound-queue-message').title = [status.text,tracked.name,status.detail,'Нажмите, чтобы открыть подробности'].filter(Boolean).join('. ');
   $('bound-queue-plan').textContent = tracked.name;
   $('bound-queue-plan').title = `Открыть привязанный план «${tracked.name}»`;
   $('bound-queue-detail').textContent = status.detail || '';
@@ -141,19 +142,45 @@ function learnedPlanRows(character) {
     return skill && (character.trained[row.id] || 0) >= skillPoints(skill.rank, row.level);
   });
 }
+function queueLevelState(row, character, now = Date.now()) {
+  if (!character) return null;
+  const entry = actualQueue(character, now).find(entry => queueKey(entry) === queueKey(row));
+  const rank = trackingSkill(row.id)?.rank;
+  if (!rank && !entry) return null;
+  const floor = entry?.level_start_sp ?? skillPoints(rank || 1, row.level - 1);
+  const end = entry?.level_end_sp ?? skillPoints(rank || 1, row.level);
+  const points = entry ? queueEntryPoints(entry, character, now) : character.trained?.[row.id] || 0;
+  const progress = Math.max(0, Math.min(100, 100 * (points - floor) / Math.max(1, end - floor)));
+  if (entry && entry === trainingEntry(character, now)) return {state:'training',progress};
+  return progress > 0 && progress < 100 ? {state:'partial',progress} : null;
+}
+function queueLevelBlocks(row, target, now = Date.now()) {
+  const character=selectedCharacter ? currentCharacter() : null;
+  const state = queueLevelState(row, character, now);
+  const queued=new Set(actualQueue(character,now).map(queueKey));
+  const rank=trackingSkill(row.id)?.rank;
+  let trained=character?.trained?.[row.id]||0;
+  const training=trainingEntry(character,now);
+  for(const entry of character?.queue||[]){
+    if(entry.skill_id!==row.id)continue;
+    const finish=queueDate(entry.finish_date);
+    if(finish!==null && finish<=now)trained=Math.max(trained,entry.level_end_sp??skillPoints(rank||1,entry.finished_level));
+    else if(entry===training)trained=Math.max(trained,queueEntryPoints(entry,character,now));
+  }
+  return [1,2,3,4,5].map(level => {
+    const current = level === row.level ? state : null;
+    const title = current ? `${roman[level]} · ${current.state==='training'?'Изучается':'Частично изучен, не обучается'} · ${current.progress.toFixed(1)}%` : `${roman[level]}`;
+    const base=character ? (rank && trained>=skillPoints(rank,level) ? 'filled' : queued.has(`${row.id}-${level}`) ? 'is-queued' : '') : level<=row.level?'filled':level<=target?'future':'';
+    return `<i class="level-block ${current ? `is-${current.state}` : base}" title="${esc(title)}" aria-label="${esc(title)}"></i>`;
+  }).join('');
+}
 function queueRowTracking(row) {
   if (!selectedCharacter) return '';
   const character = currentCharacter(), queue = actualQueue(character);
   const index = queue.findIndex(entry => queueKey(entry) === queueKey(row));
   if (index < 0) return '';
   const entry = queue[index], current = trainingEntry(character);
-  if (entry === current) {
-    const skill = trackingSkill(row.id);
-    const floor = entry.level_start_sp ?? skillPoints(skill?.rank || 1, row.level - 1);
-    const end = entry.level_end_sp ?? skillPoints(skill?.rank || 1, row.level);
-    const progress = Math.max(0, Math.min(100, 100 * (queueEntryPoints(entry, character) - floor) / Math.max(1, end - floor)));
-    return `<span class="training-row-status"><span>● Изучается · ${progress.toFixed(1)}%</span><progress value="${progress}" max="100" aria-label="Прогресс текущего уровня"></progress></span>`;
-  }
+  if (entry === current) return '';
   return `<span class="queue-row-status">В очереди ESI · №${entry.queue_position + 1}</span>`;
 }
 function learnedQueueRows() {
@@ -247,36 +274,16 @@ function renderTracking() {
   if (!character) return;
   renderBoundQueueStatus(character);
   const schedule = activeSchedule(), relation = compareActualQueue(schedule, character);
-  const current = trainingEntry(character), learned = learnedPlanRows(character);
+  const learned = learnedPlanRows(character);
   $('show-learned').checked = showLearnedSkills;
-  $('show-learned-count').textContent = `Изученные · ${learned.length}`;
-  $('tracking-name').textContent = character.name;
-  let status;
-  if (character.queue == null) status = 'Обновите ESI, чтобы загрузить полную очередь';
-  else if (!relation.actual.length) status = 'Очередь пуста';
-  else if (!current) status = 'Обучение приостановлено или ещё не началось';
-  else status = `${trackingName(current.skill_id)} ${roman[current.finished_level]} · осталось ${duration((queueDate(current.finish_date)-Date.now())/86400000)}`;
-  $('tracking-current').textContent = status;
-  $('tracking-current').classList.toggle('is-training', Boolean(current));
-  let match = 'Сравнение появится после расчёта плана';
-  if (schedule && character.queue != null) {
-    if (!relation.actual.length) match = 'Добавьте навыки в очередь игры, чтобы отслеживать этапы';
-    else if (!relation.matched) match = 'Очередь сейчас вне этого плана';
-    else if (relation.prefix === relation.actual.length) match = 'Очередь следует плану';
-    else match = 'Очередь частично совпадает или идёт в другом порядке';
-    if (relation.actual.length) match += ` · ${relation.percent}% ${relation.timed?'времени':'уровней'} по плану`;
-  }
-  $('tracking-match').textContent = match;
-  $('tracking-match').hidden = Boolean(trackedPlan(character.id));
+  $('show-learned-count').textContent = 'Показывать изученные';
   const total = learned.length + (schedule?.rows.length || 0);
-  $('tracking-progress').max = Math.max(1,total);
-  $('tracking-progress').value = learned.length;
-  $('tracking-progress-note').textContent = schedule ? `${learned.length} из ${total} уровней изучено` : 'Считаем прогресс по плану…';
+  $('tracking-progress-note').textContent = schedule ? `${learned.length} / ${total} изучено` : '';
   const trackingError = trackingErrors.get(character.id);
-  $('tracking-freshness').textContent = trackingError || `Обновлено ${trackingTime(character.fetched_at)} · автообновление каждые 5 минут`;
-  $('tracking-freshness').classList.toggle('tracking-error',Boolean(trackingError));
   $('tracking-refresh').disabled = Boolean(trackingRefresh);
-  $('tracking-refresh').textContent = trackingRefresh ? 'Обновляем…' : 'Обновить ESI';
+  $('tracking-refresh').classList.toggle('tracking-refreshing', Boolean(trackingRefresh));
+  $('tracking-refresh').classList.toggle('tracking-error', Boolean(trackingError));
+  $('tracking-refresh').title = trackingError ? `Ошибка ESI: ${trackingError}. Нажмите для повтора.` : `ESI: ${trackingTime(character.fetched_at)} · автообновление каждые 5 минут. Обновить сейчас.`;
   $('tracking-actions').innerHTML = character.queue == null ? '<p class="muted-note">Загружаем очередь и условия ближайших действий…</p>' : trackingActionCards(schedule,character,relation);
   if ($('actual-queue-dialog').open) renderActualQueue(character);
   if (schedule || !plan.goals.length) loadTrackingDetails(character);
@@ -294,7 +301,7 @@ async function loadTrackingDetails(character) {
   } catch(error) {
     trackingErrors.set(character.id,error.message);
     trackingLoaded.add(key);
-    if (selectedCharacter === character.id) $('tracking-freshness').textContent = error.message;
+    if (selectedCharacter === character.id) renderTracking();
   } finally { trackingLoading.delete(key); }
 }
 async function refreshTrackingCharacter(id, manual = false) {
@@ -320,7 +327,9 @@ async function refreshTrackingCharacter(id, manual = false) {
 function initTracking() {
   $('bound-queue-plan').addEventListener('click',()=>{
     const tracked=trackedPlan(selectedCharacter);
-    if(tracked && tracked.id!==activePlanId)openSavedPlan(tracked.id,selectedCharacter);
+    if(!tracked)return;
+    $('actual-queue-dialog').close();
+    if(tracked.id!==activePlanId)openSavedPlan(tracked.id,selectedCharacter);
   });
   try { showLearnedSkills = localStorage.getItem('skilly-show-learned') === 'true'; } catch (_) {}
   $('show-learned').addEventListener('change',()=>{
@@ -329,9 +338,9 @@ function initTracking() {
     renderQueue(); paintAccelerationSummary();
   });
   $('tracking-refresh').addEventListener('click',()=>refreshTrackingCharacter(selectedCharacter,true));
-  $('tracking-open-queue').addEventListener('click',()=>{
-    renderActualQueue(currentCharacter()); $('actual-queue-dialog').showModal();
-  });
+  const openQueue=()=>{renderActualQueue(currentCharacter()); $('actual-queue-dialog').showModal();};
+  $('tracking-open-queue').addEventListener('click',openQueue);
+  $('bound-queue-message').addEventListener('click',openQueue);
   $('tracking-actions').addEventListener('click',event=>{
     const button=event.target.closest('[data-tracking-jump]');
     if(button)jumpToTrackingAction(button);
@@ -340,6 +349,9 @@ function initTracking() {
     if (!selectedCharacter || document.hidden || busy) return;
     renderTracking();
     document.querySelectorAll('#queue tr[data-row-index]').forEach(row => {
+      const skill={id:Number(row.dataset.skillId),level:Number(row.dataset.skillLevel)};
+      const blocks=row.querySelector('.level-blocks');
+      if(blocks)blocks.innerHTML=queueLevelBlocks(skill,Number(blocks.dataset.target));
       const slot = row.querySelector('.queue-tracking-slot');
       if (slot) slot.innerHTML = queueRowTracking({id:Number(row.dataset.skillId),level:Number(row.dataset.skillLevel)});
     });

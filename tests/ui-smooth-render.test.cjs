@@ -14,7 +14,7 @@ function setup(){
  plan={name:'A',goals:[{id:1,level:3}]};
  activeSchedule=()=>fresh?schedule:null;
  function displayComparison(){return fresh?{optimized:schedule,baseline:schedule,saved_days:0}:null;}
- function syncQueueSelection(){}function currentCharacter(){return null;}function queueBookEvents(){return [];}function learnedQueueRows(){return '';}function queueRowTracking(){return '';}
+ function syncQueueSelection(){}function currentCharacter(){return null;}function queueBookEvents(){return [];}function learnedQueueRows(){return '';}function queueRowTracking(){return '';}function queueLevelBlocks(){return '';}
  function paintQueueSelection(){}function paintQueueBookPrices(){}renderTimeline=()=>{};
  function selectedAdaptation(){return null;}
  renderRecommendations=()=>{};function renderTracking(){}function updateSaveState(){}function renderCharacterContext(){}renderImplantStatus=()=>{};

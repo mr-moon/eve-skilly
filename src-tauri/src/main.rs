@@ -16,6 +16,18 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 struct Ready(AtomicBool);
 
 #[tauri::command]
+async fn check_update(app: tauri::AppHandle) -> Result<Option<Value>, String> {
+    let current = app.package_info().version.to_string();
+    tauri::async_runtime::spawn_blocking(move || skilly::updates::check(&current))
+        .await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn open_update_page() {
+    skilly::updates::open_download_page();
+}
+
+#[tauri::command]
 async fn pick_pyfa_database(app: tauri::AppHandle) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
@@ -184,6 +196,8 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            check_update,
+            open_update_page,
             request,
             pick_pyfa_database,
             import_file,

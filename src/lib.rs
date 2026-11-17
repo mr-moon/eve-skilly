@@ -9,5 +9,6 @@ pub mod optimizer;
 mod secrets;
 pub mod server;
 pub mod storage;
+pub mod updates;
 
 pub mod fits;

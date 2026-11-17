@@ -102,3 +102,26 @@ test('late bound-plan checks cannot overwrite a changed assignment or another pi
   run(`pending=checkBoundQueue(character);selectedCharacter=2;resolveRequest({plan_id:'new',saved_at:11,snapshot_at:20,schedule:{rows:[]},items:{}});`);
   await run('pending');assert.equal(run('boundQueueChecks.size'),1);assert.equal(run('renders'),0);
 });
+
+
+test('level squares distinguish active training from partial SP on an inactive level',()=>{
+  const run=setup();run(`let character={queue:${JSON.stringify(queue)},trained:{}};`);
+  assert.equal(run(`queueLevelState({id:1,level:1},character,${now}).state`),'training');
+  assert.equal(run(`queueLevelState({id:1,level:1},character,${now}).progress`),50);
+  run('character={queue:[],trained:{1:125}}');
+  assert.equal(run(`queueLevelState({id:1,level:1},character,${now}).state`),'partial');
+  assert.equal(run('queueLevelState({id:1,level:2},character)'),null);
+  run('character.trained[1]=250');
+  assert.equal(run('queueLevelState({id:1,level:1},character)'),null);
+  assert.equal(run('queueLevelState({id:1,level:1},null)'),null);
+});
+
+
+test('personal squares show confirmed training and ESI queue membership instead of projected plan levels',()=>{
+  const run=setup();run(`let selectedCharacter=1;
+    function currentCharacter(){return {trained:{1:250},queue:[{skill_id:1,finished_level:2,queue_position:0}]};}`);
+  const markup=run('queueLevelBlocks({id:1,level:5},5)');
+  assert.equal((markup.match(/level-block filled/g)||[]).length,1);
+  assert.equal((markup.match(/level-block is-queued/g)||[]).length,1);
+  assert.equal((markup.match(/class="level-block "/g)||[]).length,3);
+});

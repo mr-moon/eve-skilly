@@ -221,8 +221,8 @@ function renderQueue() {
     const days = row.end_day - row.start_day;
     const rate = days > 0 ? row.points / (days * 24) : 0;
     const rank = items[row.id]?.skill?.rank ?? '—';
-    const levels = [1,2,3,4,5].map(level => `<i class="level-block ${level <= row.level ? 'filled' : level <= targets.get(row.id) ? 'future' : ''}"></i>`).join('');
-    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i><span class="queue-skill-name" title="${esc(row.name)} ${roman[row.level]}">${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></span><span class="queue-tracking-slot">${queueRowTracking(row)}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
+    const levels = queueLevelBlocks(row,targets.get(row.id));
+    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i><span class="queue-skill-name" title="${esc(row.name)} ${roman[row.level]}">${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></span><span class="queue-tracking-slot">${queueRowTracking(row)}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" data-target="${targets.get(row.id)||row.level}" role="group" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
   }
   while (nextEvent < events.length) output.push(queueEventRow(events[nextEvent++]));
   const markup=output.join(''),context=dashboardContext();
@@ -413,4 +413,5 @@ action('Открываем локальный план…', async () => {
   applyWorkspace(data.workspace || {plan:data.plan}, data.active_id || null, data.saved_workspace || null);
   scheduleOptimization(0);
   queueDraft();
+  initUpdates();
 });

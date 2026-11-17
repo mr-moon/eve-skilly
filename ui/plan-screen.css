@@ -371,17 +371,16 @@ dialog.fit-editor-dialog[open]{width:min(900px,calc(100vw - 32px));height:min(76
 @media(prefers-reduced-motion:reduce){.fit-progress progress{animation:none}}
 @media(max-width:700px){dialog.fit-editor-dialog[open]{padding:20px}.fit-editor-tabs{flex-wrap:wrap}#fit-editor-summary{width:100%;text-align:left;margin:4px 0 0}.fit-editor-actions{align-items:flex-start}.fit-main-actions{gap:5px}.fit-main-actions button{font-size:10px;padding:8px}}
 /* Character progress and real ESI queue. */
-.character-tracking { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
-.tracking-header, .tracking-header > div, .tracking-buttons, .tracking-progress-line { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.tracking-header { justify-content: space-between; gap: 6px 16px; }
-.tracking-header strong { font-size: 13px; }
-#tracking-current { font-size: 12px; color: var(--muted); }
-#tracking-current.is-training, .training-row-status, .training-dot { color: var(--accent); }
-.tracking-buttons button { font-size: 11px; padding: 5px 0; }
-.tracking-progress-line { margin-top: 8px; font-size: 11px; color: var(--muted); }
-.tracking-progress-line progress { width: 96px; height: 5px; accent-color: var(--accent); }
-.character-tracking .muted-note { font-size: 10px; margin: 6px 0 0; }
-#tracking-freshness.tracking-error { color: #e3b678; }
+.character-tracking{display:flex;align-items:center;gap:16px;min-width:0;min-height:38px;padding:3px 16px;border-bottom:1px solid var(--line);background:var(--surface);font-size:11px;flex-shrink:0}
+.training-row-status,.training-dot{color:var(--accent)}
+.tracking-progress-note{color:var(--quiet);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tracking-buttons{display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
+.tracking-buttons button{font-size:11px;padding:3px 0;white-space:nowrap}
+#tracking-refresh{font-size:20px;line-height:24px;width:26px;height:26px;border-radius:5px;color:var(--muted)}
+#tracking-refresh:hover{color:var(--accent);background:var(--hover)}
+#tracking-refresh.tracking-error{color:var(--warn)}
+#tracking-refresh.tracking-refreshing{animation:queue-spinner 1s linear infinite}
+@media(prefers-reduced-motion:reduce){#tracking-refresh.tracking-refreshing{animation:none}}
 .show-learned-control { font-size: 11px; white-space: nowrap; }
 .training-row-status { display: block; font-size: 10px; font-weight: 400; margin-top: 5px; }
 .training-row-status progress { display: block; width: 110px; height: 4px; margin-top: 4px; accent-color: var(--accent); }
@@ -472,11 +471,11 @@ dialog.fit-editor-dialog[open]{width:min(900px,calc(100vw - 32px));height:min(76
 .queue-skill-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .skill-table.compact col.queue-col-rank,.skill-table.compact col.queue-col-attribute,.skill-table.compact col.queue-col-rate{display:none}
 
-/* Reserve one status line, including the progress bar, for every skill row. */
+/* Keep row heights stable with and without ESI status. */
 .skill-table tr.skill-row{height:64px}
 .skill-table tr.skill-row>td{height:64px;padding-top:8px;padding-bottom:8px;vertical-align:middle}
 .queue-skill-name{line-height:20px}
-.queue-tracking-slot{display:block;height:24px;overflow:hidden}
+.queue-tracking-slot{display:block;overflow:hidden}.queue-tracking-slot:empty{display:none}
 .queue-tracking-slot .training-row-status,.queue-tracking-slot .queue-row-status{margin-top:0;font-size:10px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .queue-tracking-slot .training-row-status progress{height:4px;margin-top:3px}
 
@@ -492,11 +491,33 @@ dialog.fit-editor-dialog[open]{width:min(900px,calc(100vw - 32px));height:min(76
 @keyframes queue-loader-appear{to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.queue-card>#route-state[data-state=loading]{opacity:1;animation:none}.queue-card>#route-state[data-state=loading]::after{animation:none}}
 
-.bound-queue-status{margin-top:10px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--raised);font-size:11px;min-width:0}
-.bound-queue-status>div{display:flex;align-items:center;gap:12px;min-width:0}
-.bound-queue-status strong{font-size:11px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bound-queue-status button{margin-left:auto;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;padding:0;flex-shrink:0}
-.bound-queue-status p{margin:5px 0 0;font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bound-queue-status[data-state=warning],.bound-queue-status[data-state=error]{border-color:#695332;background:#30291e}
-.bound-queue-status[data-state=warning] strong,.bound-queue-status[data-state=error] strong{color:var(--warn)}
-.bound-queue-status[data-state=matched] strong{color:var(--accent)}
+.bound-queue-status{min-width:0;max-width:50%;flex-shrink:1}
+.bound-queue-status button{display:block;max-width:100%;font-size:11px;padding:4px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.bound-queue-status[data-state=warning] button,.bound-queue-status[data-state=error] button{color:var(--warn)}
+.bound-queue-status[data-state=matched] button{color:var(--accent)}
+#actual-queue-comparison{padding:10px 12px;margin-top:12px;background:var(--raised);border:1px solid var(--line);border-radius:6px}
+#actual-queue-comparison button{font-size:12px;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#actual-queue-comparison p{font-size:12px;line-height:1.6;margin:6px 0 0}
+
+/* Level indicators: current training glows; paused partial levels are diagonal. */
+.skill-table .level-block{width:11px;height:11px;border-radius:1px;flex-shrink:0}
+.skill-table .level-block.is-training{background:#f2fffc;box-shadow:0 0 0 1px #bbfff0,0 0 6px #9effdf,0 0 14px #69eecb99;animation:training-level-glow 1.8s ease-in-out infinite}
+.skill-table .level-block.is-partial{background:linear-gradient(135deg,#8dbfb3 0 49%,#303a3a 51% 100%);box-shadow:inset 0 0 0 1px #8dbfb355}
+@keyframes training-level-glow{0%,100%{background:#343e3c;box-shadow:0 0 0 1px #5c817344,0 0 0 transparent}50%{background:#fff;box-shadow:0 0 0 1px #e0fff7,0 0 8px #baffeb,0 0 18px #69eecbbb}}
+@media(prefers-reduced-motion:reduce){.skill-table .level-block.is-training{animation:none}}
+#tracking-refresh,#queue-selection-clear{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;padding:0;line-height:1;border:0;border-radius:5px;text-decoration:none;vertical-align:middle}
+#tracking-refresh svg,#queue-selection-clear svg{display:block;flex:none}
+#tracking-refresh:hover,#queue-selection-clear:hover{background:var(--hover);text-decoration:none}
+
+.update-notice{display:flex;align-items:center;gap:14px;min-height:36px;padding:3px 16px;background:#20332f;border-bottom:1px solid #69b6aa40;flex-shrink:0;font-size:12px}
+#update-message{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+#update-download{margin-left:auto;font-size:12px;white-space:nowrap}
+#update-dismiss{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 28px;padding:0;text-decoration:none;border-radius:5px;color:var(--muted)}
+#update-dismiss svg{display:block}
+#update-dismiss:hover{background:var(--hover);color:var(--text)}
+
+.skill-table .level-block{background:#303435}
+.skill-table .level-block.future{background:#303435}
+.skill-table .level-block.filled{background:#a3cbbf}
+.skill-table .level-block.is-queued{background:#658c99}
+.skill-table .level-block.is-partial{background:linear-gradient(135deg,#acd8c9 0 49%,#303435 51% 100%)}
