@@ -27,6 +27,10 @@ test('fit requirements combine with recursive prerequisite floors',()=>{
  t.read(`plan={goals:[{id:1,level:5}],fitting:{requirements:[{id:2,level:4},{id:3,level:1}]}};items={1:{skill:{requirements:[{id:2,level:3}]}},2:{skill:{requirements:[]}}};`+required);
  assert.equal(t.read('requiredLevels().get(2)'),4);assert.equal(t.read('requiredLevels().get(3)'),1);
 });
+test('group goals keep the highest fitting requirement while allowing higher targets',()=>{
+ const t=setup();t.read(`planGroup={members:[{fitting:{requirements:[{id:1,level:3}]}},{fitting:{requirements:[{id:1,level:4}]}}]};`);
+ assert.equal(t.read('fitMinimums().get(1)'),4);
+});
 test('outdated Pyfa search results cannot overwrite a later query',async()=>{
  const t=setup();t.read("$('pyfa-search').value='Old';");const old=t.read('searchPyfa()');
  t.read("$('pyfa-search').value='New';");const latest=t.read('searchPyfa()');

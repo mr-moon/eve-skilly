@@ -19,18 +19,22 @@ function renderJourney(){
   renderFitBinding();
   $('editor-page').hidden=false;
   $('plan-kind').textContent=planGroup?'ГРУППА ПЛАНОВ':'SKILLY · ПЛАН';
+  $('plan-group-badge').hidden=!planGroup;
   $('library-close').hidden=false;
   const fresh=Boolean(displayComparison()),hasGoals=plan.goals.length>0;
   const who=selectedCharacter?currentCharacter()?.name||'персонажа':'общего плана';
   $('route-state').hidden=fresh||!hasGoals;
-  $('route-state').textContent=optimizationMessage();
-  $('route-state').dataset.state=optimizationFailure?.key===optimizationKey()&&optimizationFailure.attempts>=3?'error':'loading';
+  const failed=optimizationFailure?.key===optimizationKey()||Boolean(typeof attributeInputError==='function'&&attributeInputError());
+  $('route-state').textContent=failed?optimizationMessage():'';
+  $('route-state').dataset.state=failed?'error':'loading';
+  $('route-state').setAttribute('role','status');
+  $('route-state').setAttribute('aria-label',failed?'Ошибка расчёта':'Пересчёт очереди');
   $('copy-queue').classList.toggle('primary',fresh);
   $('copy-queue').textContent='Копировать очередь';
   $('copy-queue').title=`Оптимизированная очередь · ${who}`;
   $('add-panel').hidden=Boolean(planGroup);
   $('manual-input').hidden=Boolean(planGroup);
-  $('shared-goals-note').textContent=planGroup?'Цели из снимков планов группы.':'Общие цели · очередь обновляется автоматически.';
+  $('shared-goals-note').textContent=planGroup?'Уровни меняются для этой группы.':'Общие цели · очередь обновляется автоматически.';
 
 }
 function initJourney(){

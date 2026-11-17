@@ -16,8 +16,10 @@ function paintInjectorColumn(report){
   const rows=activeSchedule()?.rows||[];
   document.querySelectorAll('#queue td[data-queue-index]').forEach(cell=>{
     const index=Number(cell.dataset.queueIndex),point=report?.checkpoints?.[index+1],row=rows[index];
+    if(!report&&!accelerationError&&cell.dataset.injectorResolved==='true'){cell.setAttribute('aria-busy','true');return;}
     if(!point||!row||point.skill!==row.name||point.level!==row.level){cell.textContent=accelerationError?'—':'…';cell.title=accelerationError||'Расчёт инжекторов…';return;}
     cell.textContent=formatNumber(point.injectors);
+    cell.dataset.injectorResolved='true';cell.setAttribute('aria-busy','false');
     cell.title=`После ${point.skill} ${roman[point.level]}: осталось ${formatNumber(point.remaining_sp)} SP; общие SP — ${formatNumber(point.total_sp)}; первая банка даст ${formatNumber(point.sp_each)} SP. Количество на весь остаток плана; строки не суммируются.`;
   });
   $('injector-column-kind').textContent=`${currentAccelerationSettings().injector==='small'?'Small':'Large'} · после уровня`;
@@ -31,6 +33,10 @@ function fillInjectorControls(){
 }
 function paintAccelerationSummary(){
   const report=accelerationReport;
+  const preserve=typeof hasDashboardView!=='undefined'&&hasDashboardView&&!report&&!accelerationError&&Boolean(plan?.goals.length)&&$('booster-time').textContent&&$('booster-time').textContent!=='—';
+  $('booster-summary').setAttribute('aria-busy',String(!report&&!accelerationError&&Boolean(plan?.goals.length)));
+  $('booster-summary').disabled=!activeSchedule()||(!report&&!accelerationError);
+  if(preserve)return;
   $('booster-time').textContent=report?duration(report.selected.days):accelerationError?'Недоступно':'—';
   const waiting=activeSchedule()?'Считаем…':plan?.goals.length?'Очередь обновляется…':'Добавьте навыки';
   $('booster-note').textContent=report?`${report.selected.requested} шт. · ${report.selected.accelerator.name}`:accelerationError?'Нажмите для повторной попытки':waiting;

@@ -62,7 +62,7 @@ test('invalidated queue clears previous values and disables both summary actions
   assert.equal(t.nodes.get('injector-info').textContent,'');
 });
 test('queue column uses the checkpoint after each row, including a zero at completion',()=>{
-  const t=setup();t.cells.push({dataset:{queueIndex:'0'}},{dataset:{queueIndex:'1'}});
+  const t=setup();t.cells.push({dataset:{queueIndex:'0'},setAttribute(){}},{dataset:{queueIndex:'1'},setAttribute(){}});
   const checkpoints=[{injectors:5},{skill:'Science',level:3,injectors:2,remaining_sp:400000,total_sp:6100000,sp_each:400000},{skill:'Cybernetics',level:1,injectors:0,remaining_sp:0,total_sp:6500000,sp_each:400000}];
   t.read(`paintInjectorColumn(${JSON.stringify({checkpoints})});`);
   assert.equal(t.cells[0].textContent,'2');assert.equal(t.cells[1].textContent,'0');

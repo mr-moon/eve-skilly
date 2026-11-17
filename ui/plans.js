@@ -64,7 +64,7 @@ function workspaceSettings(workspace){
   return {plan:{name:p.name||'',goals:p.goals||[],attributes:p.attributes||[20,20,19,20,20],remap_count:p.remap_count??1,optimize_implants:p.optimize_implants??true,queue_priority:p.queue_priority||'fit_ready',fitting:p.fitting||null},
     character_extra_remaps:Object.fromEntries(Object.entries(workspace.character_extra_remaps||{}).filter(([,value])=>value)),
     eft:workspace.eft||'',character_remaps:workspace.character_remaps||{},character_implant_replacements:replacements,
-    group:workspace.group?{members:workspace.group.members.map(member=>({id:member.id,name:member.name,goals:member.goals,fitting:member.fitting||null}))}:null,
+    group:workspace.group?{members:workspace.group.members.map(member=>({id:member.id,name:member.name,goals:member.goals,fitting:member.fitting||null})),level_overrides:workspace.group.level_overrides||{}}:null,
     acceleration_settings:acceleration};
 }
 function fingerprint(workspace) {return JSON.stringify(canonical(workspaceSettings(workspace)));}
@@ -107,14 +107,14 @@ async function persistDraft() {
   }
 }
 async function settleDraft() { clearTimeout(draftTimer); await draftChain.catch(()=>{}); }
-function applyWorkspace(workspace,id=null,savedWorkspace=null) {
+function applyWorkspace(workspace,id=null,savedWorkspace=null,characterId=undefined) {
   saveStateError=null;
   fitReplacement=false;fitInputKey=null;
   resetCalculation(); clearTimeout(draftTimer);
   replacementChoices={...(workspace.character_implant_replacements||{})};
   characterExtraRemaps={...(workspace.character_extra_remaps||{})};
   accelerationSettings=workspace.acceleration_settings||{};
-  planGroup=workspace.group||null;characterRemaps=workspace.character_remaps||{};adaptations=workspace.adaptations||[];selectedCharacter=workspace.selected_character||null;
+  planGroup=workspace.group||null;characterRemaps=workspace.character_remaps||{};adaptations=workspace.adaptations||[];selectedCharacter=characterId===undefined?workspace.selected_character||null:characterId;
   plan=workspace.plan||newPlan();result=workspace.result||null;preview=workspace.preview||null;
   calculationKey=workspace.calculation_key||null;
   calculatedAt=new Date(workspace.calculated_at||Date.now());
@@ -132,7 +132,12 @@ async function savePlan(asNew=false,name=null) {
     if(!plan.name.trim()) plan.name='Новый план';
     await settleDraft();
     let data;try{data=await api('/api/plans/save',{id:asNew?null:activePlanId,workspace:captureWorkspace()});}catch(error){saveStateError={scope:'library',message:error.message};updateSaveState();throw error;}
-    const previousTab=editorTab;applyWorkspace(data.record.workspace,data.record.id,data.record.workspace);showEditor(previousTab);
+    for(const tracked of Object.values(characterState.tracked_plans||{}))if(tracked.id===data.record.id)tracked.name=data.record.workspace.plan.name;
+    const previousTab=editorTab;
+    if(fingerprint(data.record.workspace)===fingerprint(captureWorkspace())){activePlanId=data.record.id;savedFingerprint=fingerprint(data.record.workspace);updateSaveState();renderJourney();}
+    else applyWorkspace(data.record.workspace,data.record.id,data.record.workspace);
+    showEditor(previousTab);
+    renderCharacterList();
     $('draft-state').textContent='Черновик сохранён';
     success=true;notify(`План «${plan.name}» сохранён`);
   });
@@ -171,7 +176,43 @@ async function loadLibrary() {
   renderLibrary();
 }
 async function openLibrary() {
+  closePlanPicker();
   await action('Открываем библиотеку…',async()=>{await loadLibrary();showPage('library');});
+}
+function closePlanPicker(){
+  $('plan-picker').hidden=true;
+  $('library-open').setAttribute('aria-expanded','false');
+}
+function renderPlanPicker(){
+  const query=$('plan-picker-search').value.trim().toLocaleLowerCase();
+  const assignedId=selectedCharacter?trackedPlan(selectedCharacter)?.id:null;
+  const records=libraryRecords.filter(record=>record.name.toLocaleLowerCase().includes(query));
+  const renderRecord=record=>{
+    const characters=characterState.characters.filter(character=>trackedPlan(character.id)?.id===record.id)
+      .sort((a,b)=>Number(b.id===selectedCharacter)-Number(a.id===selectedCharacter));
+    const badges=characters.slice(0,3).map(character=>`<span class="plan-character-badge${character.id===selectedCharacter?' is-selected':''}" title="${esc(character.name)}">${esc(character.name)}</span>`).join('');
+    const more=characters.length>3?`<span class="plan-character-badge plan-character-more" title="${esc(characters.slice(3).map(character=>character.name).join(', '))}">+${characters.length-3}</span>`:'';
+    return `<button type="button" data-picker-plan="${esc(record.id)}" aria-current="${record.id===activePlanId?'page':'false'}"><span class="plan-picker-label" title="${esc(record.name)}">${esc(record.name)}</span><span class="plan-picker-meta">${record.id===activePlanId?'<span class="plan-picker-current" aria-hidden="true">✓</span>':''}${characters.length?`<span class="plan-picker-characters">${badges}${more}</span>`:''}${record.group_members?'<span class="plan-group-badge">группа</span>':''}</span></button>`;
+  };
+  const assigned=records.find(record=>record.id===assignedId);
+  const others=records.filter(record=>record.id!==assignedId);
+  const characterName=characterState.characters.find(character=>character.id===selectedCharacter)?.name||'Персонаж';
+  const heading=`Активный план · ${characterName}`;
+  const pinned=assigned?`<div class="plan-picker-pinned" role="group" aria-label="${esc(heading)}"><div class="plan-picker-section-title" title="${esc(heading)}">${esc(heading)}</div>${renderRecord(assigned)}</div>`:'';
+  $('plan-picker-list').innerHTML=records.length?`${pinned}${assigned&&others.length?'<div class="plan-picker-section-title">Остальные планы</div>':''}${others.map(renderRecord).join('')}`:`<p class="muted-note">${query?'Планы не найдены':'Пока нет сохранённых планов'}</p>`;
+}
+async function togglePlanPicker(){
+  if(!$('plan-picker').hidden){closePlanPicker();return;}
+  if(busy)return;
+  $('plan-picker-search').value='';
+  $('plan-picker-list').textContent='Загружаем планы…';
+  $('plan-picker').hidden=false;
+  $('library-open').setAttribute('aria-expanded','true');
+  await action('Загружаем планы…',async()=>{
+    try{const data=await api('/api/plans');libraryRecords=data.plans;renderPlanPicker();}
+    catch(error){$('plan-picker-list').textContent='Не удалось загрузить планы';throw error;}
+  });
+  if(!$('plan-picker').hidden)$('plan-picker-search').focus();
 }
 function showNameDialog(operation) {
   if(busy)return;
@@ -180,12 +221,12 @@ function showNameDialog(operation) {
   $('plan-new-name').value=operation.name;
   $('name-dialog').showModal();$('plan-new-name').focus();$('plan-new-name').select();
 }
-async function openSavedPlan(id) {
+async function openSavedPlan(id,characterId=undefined) {
   if(busy)return;
   if(!await canLeaveDraft('Открыть другой план? В текущем черновике есть изменения, не сохранённые в библиотеку.'))return;
   await action('Открываем сохранённую очередь…',async()=>{
     await settleDraft();const data=await api('/api/plans/open',{id});items=data.items;
-    applyWorkspace(data.record.workspace,data.record.id,data.record.workspace);
+    applyWorkspace(data.record.workspace,data.record.id,data.record.workspace,characterId);
     showEditor(editorTab);queueDraft();notify('План открыт');
   });
 }
@@ -197,7 +238,17 @@ async function importWorkspace(raw) {
   await settleDraft();items=data.items;applyWorkspace(data.workspace);queueDraft();notify('План открыт. Сохраните его в библиотеку.');
 }
 async function initPlanLibrary() {
-  $('library-open').addEventListener('click',openLibrary);
+  $('library-open').addEventListener('click',togglePlanPicker);
+  $('plan-picker-search').addEventListener('input',renderPlanPicker);
+  $('plan-picker-list').addEventListener('click',event=>{
+    const row=event.target.closest('[data-picker-plan]');if(!row)return;
+    const id=row.dataset.pickerPlan,characterId=selectedCharacter&&trackedPlan(selectedCharacter)?.id===id?selectedCharacter:undefined;
+    closePlanPicker();if(id!==activePlanId)openSavedPlan(id,characterId);
+  });
+  $('plan-picker-new').addEventListener('click',()=>{closePlanPicker();startNewPlan();});
+  $('plan-picker-library').addEventListener('click',()=>{closePlanPicker();openLibrary();});
+  document.addEventListener('click',event=>{if(!event.target.closest('.plan-switcher'))closePlanPicker();});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('plan-picker').hidden){closePlanPicker();$('library-open').focus();}});
   $('library-close').addEventListener('click',()=>showEditor(editorTab));
   $('library-new').addEventListener('click',startNewPlan);
   $('library-search').addEventListener('input',renderLibrary);

@@ -39,7 +39,12 @@ function renderFitPreview(){
 }
 function setFitView(view){fitView=view;$('fit-editor-preview').hidden=view!=='preview';$('fit-editor-code').hidden=view!=='eft';$('fit-view-preview').setAttribute('aria-pressed',String(view==='preview'));$('fit-view-eft').setAttribute('aria-pressed',String(view==='eft'));if(view==='eft')resizeFitEft();else renderFitPreview();}
 function fitNameFromEft(text){const header=text.trim().split('\n')[0];return header.startsWith('[')?header.slice(1,header.lastIndexOf(']')).split(',').slice(1).join(',').trim()||header.slice(1,header.indexOf(',')):'Новый фит';}
-function fitMinimums(){return new Map((plan?.fitting?.requirements||[]).map(r=>[r.id,r.level]));}
+function fitMinimums(){
+  const minimums=new Map();
+  const fits=[plan?.fitting,...(planGroup?.members||[]).map(member=>member.fitting)].filter(Boolean);
+  for(const fit of fits)for(const r of fit.requirements||[])minimums.set(r.id,Math.max(minimums.get(r.id)||0,r.level));
+  return minimums;
+}
 function renderFitBinding(){
  const fit=plan?.fitting,key=fit?`${fit.id}:${fit.version}`:'';
  if(key!==fitInputKey){fitReplacement=false;fitInputKey=key;}

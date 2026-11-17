@@ -7,6 +7,15 @@ const roman = ['0', 'I', 'II', 'III', 'IV', 'V'];
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 let plan, items = {}, result = null, preview = null;
 let busy = false, revision = 0, previewTimer, statusTimer;
+let hasDashboardView=false,lastQueueMarkup=null,lastQueueContext=null,lastGoalsMarkup=null,lastGoalsContext=null;
+function retainDashboardView(){return hasDashboardView&&Boolean(plan?.goals.length)&&!activeSchedule();}
+function dashboardContext(){return `${activePlanId||'draft'}:${selectedCharacter||'shared'}`;}
+function updateDashboardPending(){
+  const pending=Boolean(plan?.goals.length)&&!activeSchedule();
+  $('editor-page').classList.toggle('dashboard-pending',pending);
+  $('queue-view').setAttribute('aria-busy',String(pending));
+  $('tracking-actions').querySelectorAll('button').forEach(button=>button.disabled=pending);
+}
 let view = 'queue', panel = 'add', scheduleMode = 'optimized', calculatedAt = new Date();
 
 function newPlan() {
@@ -139,19 +148,21 @@ function renderControls() {
   renderCatalog();
 }
 function renderGoals() {
-  if(goalDrag)return;
   const focused=document.activeElement?.closest('#goals button');
   const focusId=focused?.closest('.goal-row')?.dataset.goalId;
-  const focusControl=focused?.dataset.dragGoal!==undefined?'.goal-drag-handle':focused?.dataset.level?`[data-level="${focused.dataset.level}"]`:'.goal-remove';
+  const focusControl=focused?.dataset.level?`[data-level="${focused.dataset.level}"]`:'.goal-remove';
   const minimums = requiredLevels();
   for (const goal of plan.goals) goal.level = Math.max(goal.level, minimums.get(goal.id) || 1);
   $('goal-count').textContent = plan.goals.length;
-  $('goals').innerHTML = plan.goals.length ? plan.goals.map((goal, i) => {
+  const markup = plan.goals.length ? plan.goals.map((goal, i) => {
     const skill = items[goal.id]?.skill, minimum = minimums.get(goal.id) || 1;
     const name = esc(skillName(goal.id));
-    const segments=[1,2,3,4,5].map(level=>`<button class="goal-level ${level<=goal.level?'filled':''}" data-set-goal-level="${i}" data-level="${level}" aria-label="${name}: уровень ${roman[level]}" aria-pressed="${goal.level===level}" title="${roman[level]}${level<minimum?` · требуется не ниже ${roman[minimum]}`:''}" ${level<minimum||planGroup?'disabled':''}></button>`).join('');
-    return `<div class="goal-row" data-goal-id="${goal.id}"><button class="goal-drag-handle" data-drag-goal="${goal.id}" aria-label="Переместить ${name}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Перетащите для сортировки · Alt + ↑ / ↓" ${planGroup?'disabled':''}><span aria-hidden="true">⠿</span><small aria-hidden="true">${String(i+1).padStart(2,'0')}</small></button><div class="goal-info"><strong>${name}</strong><small>${skill?`${codes[skill.primary]} / ${codes[skill.secondary]} · rank ${skill.rank}`:'Загрузка данных'}${minimums.has(goal.id)?` · минимум ${roman[minimum]}${fitMinimums().has(goal.id)?' · требуется фитом':''}`:''}</small></div><div class="goal-levels" role="group" aria-label="Целевой уровень ${name}">${segments}</div><button class="icon-button goal-remove" data-remove-goal="${i}" aria-label="Удалить ${name}" ${minimums.has(goal.id)?'disabled title="Нужен для других навыков плана"':''}>×</button></div>`;
+    const segments=[1,2,3,4,5].map(level=>`<button class="goal-level ${level<=goal.level?'filled':''}" data-set-goal-level="${i}" data-level="${level}" aria-label="${name}: уровень ${roman[level]}" aria-pressed="${goal.level===level}" title="${roman[level]}${level<minimum?` · требуется не ниже ${roman[minimum]}`:''}" ${level<minimum?'disabled':''}></button>`).join('');
+    return `<div class="goal-row" data-goal-id="${goal.id}"><div class="goal-info"><strong title="${name}">${name}</strong><small>${skill?`${codes[skill.primary]} / ${codes[skill.secondary]}`:'Загрузка данных'}${minimums.has(goal.id)?` · минимум ${roman[minimum]}${fitMinimums().has(goal.id)?' · требуется фитом':''}`:''}</small></div><div class="goal-levels" role="group" aria-label="Целевой уровень ${name}">${segments}</div><button class="icon-button goal-remove" data-remove-goal="${i}" aria-label="Удалить ${name}" ${minimums.has(goal.id)?'disabled title="Нужен для других навыков плана"':''}>×</button></div>`;
   }).join('') : '<div class="empty-goals">Вставьте фит или добавьте первый навык справа.</div>';
+  const context=`${dashboardContext()}:${Boolean(planGroup)}`;
+  if(markup===lastGoalsMarkup&&context===lastGoalsContext)return;
+  $('goals').innerHTML=markup;lastGoalsMarkup=markup;lastGoalsContext=context;
   if(focusId)document.querySelector(`[data-goal-id="${focusId}"] ${focusControl}`)?.focus({preventScroll:true});
 }
 function attributeColor(primary, secondary) { return `combo-${primary}-${secondary}`; }
@@ -189,16 +200,17 @@ function queueEventRow(event) {
   const details = isRemap
     ? `<div class="event-attributes">${codes.map((code,i) => `<span>${code} <b>${event.attributes[i]}</b></span>`).join('')}</div>`
     : `<div class="event-items">${implantLabels(event).map(esc).join('<br>')}</div><div class="event-prerequisite">После Cybernetics ${roman[event.cybernetics]}, перед следующим навыком.</div>`;
-  return `<tr class="queue-event queue-event-${event.kind}" data-event-kind="${event.kind}"><td class="event-icon-cell" aria-hidden="true">${isRemap ? '↗' : '◇'}</td><td colspan="8"><div class="event-heading"><strong>${isRemap ? 'Сделать remap' : 'Купить и установить импланты'}</strong><span>${when}</span></div>${details}</td></tr>`;
+  return `<tr class="queue-event queue-event-${event.kind}" data-event-kind="${event.kind}" data-event-day="${event.day}"><td class="event-icon-cell" aria-hidden="true">${isRemap ? '↗' : '◇'}</td><td colspan="8"><div class="event-heading"><strong>${isRemap ? 'Сделать remap' : 'Купить и установить импланты'}</strong><span>${when}</span></div>${details}</td></tr>`;
 }
 function renderQueue() {
+  if(retainDashboardView())return;
   const schedule = activeSchedule(), rows = schedule?.rows || [], events = scheduleEvents(schedule);
   syncQueueSelection(schedule,selectedCharacter);
   const injected=selectedCharacter?(currentCharacter()?.injected_skill_ids||selectedAdaptation()?.character?.injected_skill_ids||[]):[];
   const books=new Map(queueBookEvents(schedule,injected).map(event=>[event.index,event]));
   const targets = new Map();
   for (const row of rows) targets.set(row.id, Math.max(targets.get(row.id) || 0, row.level));
-  $('empty-queue').hidden = rows.length > 0 || Boolean(selectedCharacter && showLearnedSkills && learnedPlanRows(currentCharacter()).length);
+  $('empty-queue').hidden = rows.length > 0 || Boolean(plan.goals.length&&!schedule) || Boolean(selectedCharacter && showLearnedSkills && learnedPlanRows(currentCharacter()).length);
   const output = [learnedQueueRows()];
   let nextEvent = 0;
   for (const [i, row] of rows.entries()) {
@@ -210,10 +222,28 @@ function renderQueue() {
     const rate = days > 0 ? row.points / (days * 24) : 0;
     const rank = items[row.id]?.skill?.rank ?? '—';
     const levels = [1,2,3,4,5].map(level => `<i class="level-block ${level <= row.level ? 'filled' : level <= targets.get(row.id) ? 'future' : ''}"></i>`).join('');
-    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i>${esc(row.name)} <span class="roman-level">${roman[row.level]}</span><span class="queue-tracking-slot">${queueRowTracking(row)}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
+    output.push(`<tr class="skill-row" tabindex="${i===0?0:-1}" data-row-index="${i}" aria-selected="false" data-skill-id="${row.id}" data-skill-level="${row.level}"><td class="row-number">${String(i+1).padStart(2,'0')}</td><td class="skill-name-cell"><i class="skill-marker ${attributeColor(row.primary, row.secondary)}"></i><span class="queue-skill-name" title="${esc(row.name)} ${roman[row.level]}">${esc(row.name)} <span class="roman-level">${roman[row.level]}</span></span><span class="queue-tracking-slot">${queueRowTracking(row)}</span></td><td class="time-column ${days >= 20 ? 'time-long' : days >= 5 ? 'time-warm' : ''}" title="${duration(days)}">${duration(days,true)}</td><td class="rank-column">${rank}</td><td class="attribute-column"><span class="attribute-chip attr-${row.primary}">${attrs[row.primary]}</span></td><td class="attribute-column"><span class="attribute-chip attr-${row.secondary}">${attrs[row.secondary]}</span></td><td class="rate-column">${formatNumber(rate)}</td><td class="level-column"><span class="level-blocks" role="img" aria-label="Этап обучения: уровень ${roman[row.level]}">${levels}</span></td><td class="injector-column" data-queue-index="${i}">…</td></tr>`);
   }
   while (nextEvent < events.length) output.push(queueEventRow(events[nextEvent++]));
-  $('queue').innerHTML = output.join('');
+  const markup=output.join(''),context=dashboardContext();
+  if(markup!==lastQueueMarkup||context!==lastQueueContext){
+    const scroller=$('queue-scroll'),scrollTop=scroller.scrollTop,scrollLeft=scroller.scrollLeft;
+    const sameContext=context===lastQueueContext;
+    const previousInjectors=new Map();
+    if(sameContext)$('queue').querySelectorAll('tr[data-skill-id]').forEach(row=>{
+      const cell=row.querySelector('.injector-column');
+      if(cell?.dataset.injectorResolved==='true')previousInjectors.set(`${row.dataset.skillId}:${row.dataset.skillLevel}`,{text:cell.textContent,title:cell.title});
+    });
+    $('queue').innerHTML = markup;
+    $('queue').querySelectorAll('tr[data-skill-id]').forEach(row=>{
+      const previous=previousInjectors.get(`${row.dataset.skillId}:${row.dataset.skillLevel}`),cell=row.querySelector('.injector-column');
+      if(previous&&cell){cell.textContent=previous.text;cell.title='Обновляем расчёт инжекторов…';cell.dataset.injectorResolved='true';cell.setAttribute('aria-busy','true');}
+    });
+    scroller.scrollTop=sameContext?scrollTop:0;scroller.scrollLeft=sameContext?scrollLeft:0;
+    lastQueueMarkup=markup;lastQueueContext=context;
+  }
+  if(schedule)hasDashboardView=true;
+  else if(!plan.goals.length)hasDashboardView=false;
   paintQueueSelection();paintQueueBookPrices();
   renderTimeline(rows);
 }
@@ -242,11 +272,13 @@ function renderRecommendations() {
   $('method').textContent = `${result.searched_maps.toLocaleString('ru-RU')} распределений атрибутов. ${result.method} Fitting CPU/PG и Alpha-ограничения не проверяются. Импланты из EFT добавляют требования навыков; рекомендации относятся к отдельному учебному клону.`;
 }
 function renderSummary() {
+  const retained=retainDashboardView();
   const result=displayComparison();
   const schedule = activeSchedule(), rows = schedule?.rows || [];
   const total = rows.reduce((sum, row) => sum + row.points, 0), unique = new Set(rows.map(row => row.id)).size;
   const time = schedule && rows.length ? duration(schedule.days) : '—';
   const finish = schedule && rows.length ? endDate(schedule.days) : '';
+  if(!retained){
   $('top-time').textContent = time;
   $('top-time').title = time;
   $('top-count').textContent = `${rows.length} ${plural(rows.length,['уровень','уровня','уровней'])} · ${unique} ${plural(unique,['навык','навыка','навыков'])}`;
@@ -255,14 +287,15 @@ function renderSummary() {
   $('top-sp').textContent = total ? `${compactSP(total)} SP` : '';
   $('top-saving').textContent = result ? duration(result.saved_days) : '—';
   $('top-saving-note').textContent = result ? `${(result.baseline.days ? 100*result.saved_days/result.baseline.days : 0).toFixed(1)}% меньше времени` : 'Подбор remap и имплантов';
+  }
   $('remap-summary').textContent = result ? `В оптимизированном плане: ${result.optimized.remaps.length} из ${selectedCharacter ? selectedAdaptation()?.remap_count ?? 0 : plan.remap_count} remap.` : 'Моменты выбираются автоматически.';
   $('export-queue').disabled = !rows.length;
   $('copy-queue').disabled = !rows.length;
-  renderRecommendations();
+  if(!retained)renderRecommendations();
   renderTracking();
   updateSaveState(); renderCharacterContext(); renderImplantStatus(); renderGroupContext(); renderAccelerationControls(); renderBookCosts(); renderJourney();
 }
-function renderDashboard() { renderQueue(); renderSummary(); scheduleOptimization(); }
+function renderDashboard() { renderQueue(); renderSummary(); updateDashboardPending(); scheduleOptimization(); }
 function render() { renderControls(); renderGoals(); renderDashboard(); renderJourney(); }
 function resetCalculation() {
   resetAcceleration(); resetBookCosts();
@@ -336,10 +369,12 @@ document.addEventListener('click', event => {
     if (requiredLevels().has(plan.goals[index].id)) { notify('Этот навык нужен для других целей плана','error'); return; }
     plan.goals.splice(index,1); invalidate();
   }
-  if(button.dataset.setGoalLevel!==undefined&&!planGroup&&!button.disabled){
+  if(button.dataset.setGoalLevel!==undefined&&!button.disabled){
     const goal=plan.goals[Number(button.dataset.setGoalLevel)];
     const level=Math.max(Number(button.dataset.level),requiredLevels().get(goal.id)||1);
-    if(goal.level!==level){goal.level=level;invalidate();
+    if(goal.level!==level){
+      if(planGroup){planGroup.level_overrides||={};planGroup.level_overrides[goal.id]=level;}
+      goal.level=level;invalidate();
       document.querySelector(`[data-set-goal-level="${button.dataset.setGoalLevel}"][data-level="${level}"]`)?.focus({preventScroll:true});
     }
   }
@@ -368,7 +403,7 @@ $('file').addEventListener('change', async () => {
 });
 $('clear').addEventListener('click', startNewPlan);
 action('Открываем локальный план…', async () => {
-  initJourney();initGoalControls();initQueueControls();initTracking();
+  initJourney();initQueueControls();initTracking();
   await initPlanLibrary();
   await initCharacters();
   initGroups();

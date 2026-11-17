@@ -69,3 +69,16 @@ test('extra remap is an explicit per-character input and changes the optimizatio
  const running=t.run();assert.equal(t.requests.at(-1).body.extra_remap,true);
  t.pending.shift().resolve({adaptation:{character_id:7,source_key:'shared',remap_count:1,extra_remap:true,comparison:{optimized:{days:1,rows:[]}}},items:{}});await running;
 });
+test('switching inputs starts a new calculation without waiting for the obsolete request',async()=>{
+ const t=setup();const old=t.run();
+ t.read('revision++;plan.goals[0].level=5;scheduleOptimization();');
+ const current=t.run();assert.equal(t.requests.length,2);
+ t.pending[1].resolve(response(5));await current;
+ t.pending[0].resolve(response(3));await old;
+ assert.equal(t.read('result.optimized.days'),5);
+});
+test('a completed optimization commits the dashboard once',async()=>{
+ const t=setup();t.read('let paints=0;renderDashboard=()=>paints++;');
+ const run=t.run();t.pending[0].resolve(response());await run;
+ assert.equal(t.read('paints'),1);
+});

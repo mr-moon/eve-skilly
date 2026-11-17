@@ -1,6 +1,42 @@
 "use strict";
 let replacementChoices={}, characterExtraRemaps={}, characterRemaps={}, adaptations=[], selectedCharacter=null, characterState={characters:[],login:{}}, characterPoll;
 let lastContextCharacter=null;
+let trackingPlanPending=false;
+function trackedPlan(id){return characterState.tracked_plans?.[id]||null;}
+function trackedPlanName(id){return trackedPlan(id)?.name||'Без плана';}
+function renderPlanTracking(){
+  const tracked=trackedPlan(selectedCharacter),attached=Boolean(activePlanId&&tracked?.id===activePlanId);
+  $('character-plan-actions').hidden=!selectedCharacter;
+  $('character-track-plan').hidden=!selectedCharacter||attached;
+  const name=currentCharacter()?.name||'Персонаж';
+  $('character-plan-target').textContent=name;
+  $('character-plan-target').title=name;
+  $('character-track-plan').textContent='Привязать план';
+  $('character-track-plan').disabled=attached||trackingPlanPending||!plan?.goals.length;
+  $('character-track-plan').title=!plan?.goals.length?'Сначала добавьте цели плана':`Привязать «${plan.name}» к ${name}`;
+  $('character-untrack-plan').textContent='Отвязать план';
+  $('character-untrack-plan').hidden=!selectedCharacter||!attached;
+  $('character-untrack-plan').disabled=trackingPlanPending;
+}
+async function togglePlanTracking(detach=false){
+  if(busy||trackingPlanPending||!selectedCharacter)return;
+  const characterId=selectedCharacter,previous=trackedPlan(characterId);
+  if(detach&&previous?.id!==activePlanId)return;
+  if(!detach&&previous?.id===activePlanId)return;
+  trackingPlanPending=true;renderPlanTracking();
+  try{
+    if(!detach&&previous&&!await confirmAction(`Заменить отслеживаемый план «${previous.name}» на «${plan.name}» для ${currentCharacter()?.name}?`))return;
+    if(!detach&&(!activePlanId||isDirty())&&!await savePlan())return;
+    await action(detach?'Отключаем отслеживание…':'Привязываем план…',async()=>{
+      try{
+        const data=await api('/api/characters/track-plan',{id:characterId,plan_id:detach?null:activePlanId,expected_plan_id:previous?.id||null});
+        characterState.tracked_plans=data.tracked_plans;
+        renderCharacterList();renderCharacterContext();
+        notify(detach?'Отслеживание отключено':'План отслеживается для выбранного персонажа');
+      }catch(error){await loadCharacters();throw error;}
+    });
+  }finally{trackingPlanPending=false;renderPlanTracking();}
+}
 function selectedAdaptation(){return adaptations.find(a=>a.character_id===selectedCharacter);}
 function currentCharacter(){return characterState.characters.find(c=>c.id===selectedCharacter)||selectedAdaptation()?.character;}
 function adaptationStale(adaptation=selectedAdaptation()){
@@ -19,17 +55,18 @@ function renderRemapTradeoff(){
   $('extra-remap-saving').textContent=`Потратить ещё один remap · экономия ${duration(offer.saved_days)}`;
 }
 function renderCharacterContext(){
-  const select=$('character-view');if(!select||!plan)return;
+  const select=$('character-options');if(!select||!plan)return;
   const names=new Map(characterState.characters.map(c=>[c.id,c.name]));
   for(const a of adaptations)if(!names.has(a.character_id))names.set(a.character_id,a.character_name);
   if(selectedCharacter)lastContextCharacter=selectedCharacter;
   if(lastContextCharacter&&!names.has(lastContextCharacter))lastContextCharacter=null;
-  const options=Array.from(names,([id,name])=>`<button type="button" data-context-character="${id}" aria-pressed="${id===selectedCharacter}">${esc(name)}${id===selectedCharacter?'<span aria-hidden="true">✓</span>':''}</button>`).join('')||'<p class="muted-note">Нет подключённых персонажей</p>';
+  const options=Array.from(names,([id,name])=>`<button type="button" data-context-character="${id}" aria-pressed="${id===selectedCharacter}"><span>${esc(name)}<small>${esc(trackedPlanName(id))}</small></span>${id===selectedCharacter?'<span aria-hidden="true">✓</span>':''}</button>`).join('')||'<p class="muted-note">Нет подключённых персонажей</p>';
   if(select.innerHTML!==options)select.innerHTML=options;
-  $('character-active').textContent=names.get(lastContextCharacter)||'Персонаж';
+  $('character-active').innerHTML=`<span>${esc(names.get(lastContextCharacter)||'Персонаж')}</span>${lastContextCharacter?`<small>${esc(trackedPlanName(lastContextCharacter))}</small>`:''}`;
   $('character-active').setAttribute('aria-pressed',String(Boolean(selectedCharacter)));
   $('character-none').setAttribute('aria-pressed',String(!selectedCharacter));
   const personal=Boolean(selectedCharacter),character=currentCharacter(),adaptation=selectedAdaptation();
+  renderPlanTracking();
   $('character-settings').hidden=!personal;
   $('implant-replacement-controls').hidden=!personal;
   $('implant-optimization-control').hidden=personal;
@@ -41,7 +78,7 @@ function renderCharacterContext(){
   if(personal&&character)$('remap-count').value=characterRemaps[selectedCharacter]??character.remap_count;
   $('remap-reset').hidden=!personal||characterRemaps[selectedCharacter]===undefined;
   if(personal&&character)$('remap-summary').textContent+=` ESI: ${character.remap_count}.${characterRemaps[selectedCharacter]!==undefined?' Задано вручную.':''}`;
-  $('character-active').title=personal?'Персональная очередь. Общий план сохраняется отдельно.':'Общий план с нуля, без изученных навыков персонажа.';
+  $('character-active').title=lastContextCharacter?`${names.get(lastContextCharacter)} · ${trackedPlanName(lastContextCharacter)}`:'Выбрать персонажа';
   if(!personal){$('character-context-note').textContent='Общий план не зависит от персонажей';return;}
   $('character-context-note').textContent=adaptationStale()?'Автоматическая оптимизация…':'Отдельная адаптация · общий план не изменён';
 
@@ -65,7 +102,7 @@ async function selectCharacter(id){
   if(character&&Date.now()-character.fetched_at>=TRACKING_REFRESH_MS)refreshTrackingCharacter(character.id);
 }
 function renderCharacterList(){
-  $('characters-list').innerHTML=characterState.characters.map(c=>`<div class="saved-plan-row"><div class="saved-plan-info"><strong>${esc(c.name)}</strong><small>${c.skill_count} навыков · ${c.remap_count} remap · ${new Date(c.fetched_at).toLocaleString('ru-RU')}</small></div><div class="saved-plan-actions"><button data-use-character="${c.id}">Выбрать для плана</button><button data-sync-character="${c.id}">Обновить ESI</button></div></div>`).join('')||'<div class="library-empty">Подключите персонажа, чтобы прочитать его навыки и импланты.</div>';
+  $('characters-list').innerHTML=characterState.characters.map(c=>`<div class="saved-plan-row"><div class="saved-plan-info"><strong>${esc(c.name)} · ${esc(trackedPlanName(c.id))}</strong><small>${c.skill_count} навыков · ${c.remap_count} remap · ${new Date(c.fetched_at).toLocaleString('ru-RU')}</small></div><div class="saved-plan-actions">${trackedPlan(c.id)?`<button data-open-tracked="${c.id}">Открыть план</button>`:''}<button data-use-character="${c.id}">Выбрать для плана</button><button data-sync-character="${c.id}">Обновить ESI</button></div></div>`).join('')||'<div class="library-empty">Подключите персонажа, чтобы прочитать его навыки и импланты.</div>';
   $('character-login-status').textContent=characterState.login?.message||'';
   $('character-connect').disabled=['waiting','loading'].includes(characterState.login?.phase);
 }
@@ -87,6 +124,8 @@ async function initCharacters(){
   $('characters-close').addEventListener('click',()=>showEditor(editorTab));
   $('character-none').addEventListener('click',()=>selectCharacter(null));
   const closePicker=()=>{$('character-view').hidden=true;$('character-picker-toggle').setAttribute('aria-expanded','false');};
+  $('character-track-plan').addEventListener('click',()=>{closePicker();togglePlanTracking();});
+  $('character-untrack-plan').addEventListener('click',()=>{closePicker();togglePlanTracking(true);});
   const openPicker=()=>{$('character-view').hidden=false;$('character-picker-toggle').setAttribute('aria-expanded','true');};
   $('character-active').addEventListener('click',()=>{
     if(lastContextCharacter){closePicker();selectCharacter(lastContextCharacter);}else openPicker();
@@ -112,6 +151,7 @@ async function initCharacters(){
   $('characters-list').addEventListener('click',async event=>{
     const button=event.target.closest('button');if(!button||busy)return;
     if(button.dataset.syncCharacter)await refreshTrackingCharacter(Number(button.dataset.syncCharacter),true);
+    if(button.dataset.openTracked){const id=Number(button.dataset.openTracked);await openSavedPlan(trackedPlan(id).id,id);}
     if(button.dataset.useCharacter){showEditor(editorTab);await selectCharacter(Number(button.dataset.useCharacter));}
   });
   pollCharacters();

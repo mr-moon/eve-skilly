@@ -3,16 +3,13 @@ let planGroup=null,groupSelection=new Set(),groupEditing=false;
 function renderGroupContext(){
   if(!plan)return;
   const grouped=Boolean(planGroup);
-  $('group-context').hidden=!grouped;
-  if(grouped){
-    $('group-members-text').textContent=planGroup.members.map(m=>m.name).join(' · ');
-    $('group-members-text').title=planGroup.members.map(m=>`${m.name} · снимок ${new Date(m.saved_at).toLocaleString('ru-RU')}`).join('\n');
-    $('group-count').textContent=`Группа · ${planGroup.members.length} ${plural(planGroup.members.length,['план','плана','планов'])}`;
-  }
+  $('group-edit').hidden=!grouped;
   document.querySelectorAll('#add-skill,#parse-eft').forEach(button=>button.disabled=grouped);
-  if(grouped)document.querySelectorAll('#goals button,#goals select').forEach(control=>control.disabled=true);
+  if(grouped)document.querySelectorAll('#goals .goal-remove').forEach(control=>control.disabled=true);
 }
 function renderGroupPicker(){
+  const changed=groupEditing&&planGroup.members.some(member=>libraryRecords.some(record=>record.id===member.id&&record.saved_at!==member.saved_at));
+  $('group-source-update').hidden=!changed;
   const records=libraryRecords.filter(record=>!record.group_members).map(record=>({...record,cached:false}));
   if(groupEditing)for(const member of planGroup.members){
     if(!records.some(r=>r.id===member.id))records.push({id:member.id,name:member.name,goals:member.goals.length,cached:true});
@@ -40,11 +37,12 @@ async function refreshGroup(){
     const previousFingerprint=savedFingerprint;
     items=data.items;applyWorkspace(data.workspace,activePlanId);savedFingerprint=previousFingerprint;
     render();queueDraft();notify('Планы в группе обновлены. Очередь обновляется автоматически.');
+    if($('group-dialog').open)renderGroupPicker();
   });
 }
 function initGroups(){
   $('library-create-group').addEventListener('click',()=>openGroupComposer(false));
-  $('group-edit').addEventListener('click',()=>openGroupComposer(true));
+  $('group-edit').addEventListener('click',()=>{closePlanPicker();openGroupComposer(true);});
   $('group-refresh').addEventListener('click',refreshGroup);
   $('group-cancel').addEventListener('click',()=>$('group-dialog').close());
   $('group-search').addEventListener('input',renderGroupPicker);

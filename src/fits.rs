@@ -379,6 +379,7 @@ mod tests {
         fit.enforce(&mut missing);
         assert_eq!(missing[0].level, 3);
         let group = crate::groups::PlanGroup {
+            level_overrides: BTreeMap::new(),
             members: vec![crate::groups::GroupMember {
                 id: "plan-a".into(),
                 name: "A".into(),

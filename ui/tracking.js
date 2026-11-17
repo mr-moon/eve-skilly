@@ -6,11 +6,8 @@ const trackingErrors = new Map();
 const trackingAttempts = new Map();
 const trackingItems = {};
 const trackingLoaded = new Set();
-const trackingPurchases = new Map();
 const trackingLoading = new Set();
-const trackingPurchasePending = new Set();
 const TRACKING_REFRESH_MS = 5 * 60 * 1000;
-
 function trackingSkill(id) {
   return items[id]?.skill || trackingItems[id]?.skill;
 }
@@ -135,53 +132,38 @@ function actualRemapSaving(attributes, character, queue, now = Date.now()) {
   }
   return (before - after) / 1440;
 }
-function trackingPurchase(key, label, characterId) {
-  const checked = trackingPurchases.get(characterId)?.has(key) || false;
-  const disabled = !trackingPurchases.has(characterId) || trackingPurchasePending.has(`${characterId}-${key}`);
-  return `<label class="tracking-purchase"><input type="checkbox" data-tracking-purchase="${esc(key)}" ${checked?'checked':''} ${disabled?'disabled':''}><span>${esc(label)}</span><small>${checked?'Куплено':'Отметить покупку'}</small></label>`;
+function plannedTrackingActions(schedule, character, relation, computedAt) {
+  if (!schedule) return [];
+  const events=scheduleEvents(schedule).filter(event=>event.kind==='remap'||event.purchases.some((bonus,index)=>bonus>(character.bonuses?.[index]||0)));
+  const books=queueBookEvents(schedule,character.injected_skill_ids||[]).map(event=>({...event,kind:'book'}));
+  return [...events,...books].map(event=>({event,anchor:eventAnchor(event,schedule,relation,computedAt)}))
+    .sort((a,b)=>a.anchor.time-b.anchor.time);
 }
 function trackingActionCards(schedule, character, relation) {
-  if (!schedule) return '<p class="muted-note">Обновляем рекомендации по плану…</p>';
-  const computedAt = selectedAdaptation()?.computed_at || Date.now();
-  const events = scheduleEvents(schedule);
-  const cards = [];
-  for (const event of events) {
-    const anchor = eventAnchor(event, schedule, relation, computedAt);
-    const nextName = anchor.row ? `${anchor.row.name} ${roman[anchor.row.level]}` : 'следующим этапом';
-    const when = anchor.aligned ? `${trackingTime(anchor.time)} · по очереди ESI` : `${trackingTime(anchor.time)} · прогноз по плану`;
-    if (event.kind === 'remap') {
-      const from = anchor.aligned ? relation.actual.findIndex(entry => queueKey(entry) === queueKey(anchor.row)) : 0;
-      const saving = actualRemapSaving(event.attributes, character, relation.actual.slice(Math.max(0, from)));
-      const spentBefore = schedule.remaps.filter(remap => remap.day < event.day - 1e-8).length;
-      const annualDate = queueDate(character.next_remap);
-      const annualRestored = annualDate !== null && annualDate > character.fetched_at && annualDate <= anchor.time;
-      const available = character.remap_count + Number(annualRestored) > spentBefore;
-      let assessment = 'Нужны данные всех навыков очереди для оценки выгоды.';
-      if (saving !== null) assessment = saving > 0 ? `Экономия ${duration(saving)} на оставшейся очереди ESI с этими атрибутами.` : `На оставшейся очереди ESI выигрыш отсутствует${saving < 0 ? ` · потеря ${duration(-saving)}` : ''}.`;
-      const status = anchor.aligned && available && saving > 0 ? 'По очереди' : 'Нужна сверка';
-      cards.push(`<article class="tracking-action"><div class="tracking-action-heading"><strong>Сделать remap</strong><span>${status}</span></div><p>${when} · перед ${esc(nextName)}</p><div class="event-attributes">${codes.map((code,i)=>`<span>${code} <b>${event.attributes[i]}</b></span>`).join('')}</div><p>${assessment}</p><small>Оценка без бустеров и следующих ремапов. ${available?'Доступность проверена по данным ESI.':'По данным ESI remap пока недоступен.'} ${anchor.aligned?'':'Порядок очереди отличается или этап ещё не поставлен в игру.'}</small></article>`);
-      continue;
-    }
-    const purchases = event.purchases.map((bonus,index)=>({bonus,index})).filter(item => item.bonus > (character.bonuses?.[item.index] || 0));
-    if (!purchases.length) continue;
-    const cyberSkill = trackingSkill(3411);
-    const cyberPoints = character.trained?.[3411] || 0;
-    const unlocked = cyberPoints >= skillPoints(cyberSkill?.rank || 3, event.cybernetics);
-    const unlock = relation.actual.find(entry => entry.skill_id === 3411 && entry.finished_level >= event.cybernetics);
-    const unlockDate = queueDate(unlock?.finish_date);
-    const requirement = unlocked ? 'Cybernetics изучен · установка доступна' : `Установка после Cybernetics ${roman[event.cybernetics]}${unlockDate !== null?` · ${trackingTime(unlockDate)} по ESI`:''}`;
-    const rows = purchases.map(item => {
-      const single = {...event,purchases:event.purchases.map((bonus,index)=>index===item.index?bonus:0)};
-      return trackingPurchase(`implant-${item.index}-${item.bonus}`, implantLabels(single)[0], character.id);
-    }).join('');
-    cards.push(`<article class="tracking-action"><div class="tracking-action-heading"><strong>Купить и установить импланты</strong><span>${unlocked?'Доступно':'После обучения'}</span></div><p>${when} · перед ${esc(nextName)}</p><p>${requirement}</p>${rows}<small>Можно купить заранее. Установка проверяется при обновлении ESI.</small></article>`);
-  }
-  const injected = new Set(character.injected_skill_ids || []);
-  const books = queueBookEvents(schedule, Array.from(injected));
-  if (books.length) {
-    cards.push(`<article class="tracking-action"><strong>Подготовить книги навыков</strong><p>До первого уровня соответствующего навыка</p>${books.map(event => trackingPurchase(`book-${event.id}`, event.name, character.id)).join('')}</article>`);
-  }
-  return cards.join('') || '<p class="muted-note">По текущему расчёту дополнительных действий нет.</p>';
+  if (!schedule) return '<p class="muted-note">Обновляем действия по плану…</p>';
+  const now=Date.now(),computedAt=selectedAdaptation()?.computed_at||now;
+  const actions=plannedTrackingActions(schedule,character,relation,computedAt);
+  return actions.map(({event,anchor})=>{
+    const label=event.kind==='remap'?'Сделать remap':event.kind==='book'?`Книга: ${event.name}`:'Установить импланты';
+    const remaining=Math.max(0,(anchor.time-now)/86400000);
+    const countdown=remaining>0?`через ${duration(remaining,true)}`:'Сейчас';
+    const source=anchor.aligned?'По очереди ESI':'Прогноз по плану';
+    const detail=event.kind==='implant'?implantLabels(event).join(', '):event.kind==='remap'?codes.map((code,index)=>`${code} ${event.attributes[index]}`).join(' · '):event.name;
+    return `<button type="button" class="tracking-action-link" data-tracking-jump="${event.kind}" data-action-day="${event.day}" ${event.kind==='book'?`data-action-book="${event.id}"`:''} title="${esc(`${label} · ${detail}. ${source}. Перейти к действию в очереди.`)}"><time title="${source}">${anchor.aligned?'':'≈ '}${trackingTime(anchor.time)}</time><span class="tracking-action-label">${esc(label)}</span><span class="tracking-action-countdown">${countdown}</span></button>`;
+  }).join('')||'<p class="muted-note">Дополнительных действий нет.</p>';
+}
+function jumpToTrackingAction(button) {
+  if(!activeSchedule())return;
+  const kind=button.dataset.trackingJump;
+  const target=kind==='book'
+    ?Array.from(document.querySelectorAll('#queue [data-book-id]')).find(row=>row.dataset.bookId===button.dataset.actionBook)
+    :Array.from(document.querySelectorAll('#queue [data-event-kind]')).find(row=>row.dataset.eventKind===kind&&row.dataset.eventDay===button.dataset.actionDay);
+  if(!target){notify('Очередь обновилась. Выберите действие ещё раз.','error');return;}
+  document.querySelectorAll('#queue .queue-event-target').forEach(row=>row.classList.remove('queue-event-target'));
+  target.classList.add('queue-event-target');
+  target.setAttribute('tabindex','-1');
+  target.focus({preventScroll:true});
+  target.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
 }
 function renderActualQueue(character) {
   const now = Date.now(), current = trainingEntry(character, now), queue = actualQueue(character, now);
@@ -196,6 +178,7 @@ function renderActualQueue(character) {
   }).join('') || `<p class="muted-note">${character.queue == null?'Полная очередь ещё не загружена. Обновите данные ESI.':'По последнему снимку активная очередь пуста.'}</p>`;
 }
 function renderTracking() {
+  if(typeof retainDashboardView==='function'&&retainDashboardView())return;
   const character = selectedCharacter ? currentCharacter() : null;
   $('character-tracking').hidden = !character;
   $('tracking-actions-section').hidden = !character;
@@ -240,13 +223,9 @@ async function loadTrackingDetails(character) {
   if (trackingLoaded.has(key) || trackingLoading.has(key)) return;
   trackingLoading.add(key);
   try {
-    const [catalog, saved] = await Promise.all([
-      api('/api/characters/queue-items',{id:character.id}),
-      api('/api/characters/tracking',{id:character.id})
-    ]);
+    const catalog = await api('/api/characters/queue-items',{id:character.id});
     Object.assign(trackingItems,catalog.items);
     if (catalog.warnings?.length) trackingErrors.set(character.id,catalog.warnings.join(' '));
-    if (!trackingPurchases.has(character.id)) trackingPurchases.set(character.id,new Set(saved.purchases));
     trackingLoaded.add(key);
     if (selectedCharacter === character.id) { renderTracking(); renderQueue(); paintAccelerationSummary(); }
   } catch(error) {
@@ -285,16 +264,9 @@ function initTracking() {
   $('tracking-open-queue').addEventListener('click',()=>{
     renderActualQueue(currentCharacter()); $('actual-queue-dialog').showModal();
   });
-  $('tracking-actions').addEventListener('change',async event=>{
-    const input = event.target.closest('[data-tracking-purchase]');
-    if (!input) return;
-    const id = selectedCharacter, key = input.dataset.trackingPurchase, pending = `${id}-${key}`;
-    trackingPurchasePending.add(pending); input.disabled = true;
-    try {
-      const saved = await api('/api/characters/tracking',{id,key,purchased:input.checked});
-      trackingPurchases.set(id,new Set(saved.purchases));
-    } catch(error) { notify(error.message,'error'); }
-    finally { trackingPurchasePending.delete(pending); renderTracking(); }
+  $('tracking-actions').addEventListener('click',event=>{
+    const button=event.target.closest('[data-tracking-jump]');
+    if(button)jumpToTrackingAction(button);
   });
   setInterval(()=>{
     if (!selectedCharacter || document.hidden || busy) return;

@@ -17,6 +17,7 @@ function optimizationMessage(){
   return 'Оптимизируем очередь…';
 }
 function scheduleOptimization(delay=350){
+  if(optimizationTask&&optimizationTask.key!==optimizationKey())optimizationTask=null;
   if(!plan?.goals.length||displayComparison()||optimizationTask||(typeof attributeInputError==='function'&&attributeInputError()))return;
   const failed=optimizationFailure?.key===optimizationKey()?optimizationFailure:null;
   if(failed?.attempts>=3)return;
@@ -53,15 +54,17 @@ async function runOptimization(){
       adaptations.push(data.adaptation);
     }
     optimizationFailure=null;scheduleMode='optimized';
-    renderCatalog();renderGoals();renderDashboard();queueDraft();
+    renderCatalog();renderGoals();queueDraft();
   }catch(error){
     if(isCurrent()){
       const previous=optimizationFailure?.key===task.key?optimizationFailure.attempts:0;
       optimizationFailure={key:task.key,message:error.message,attempts:previous+1};
     }
   }finally{
-    optimizationTask=null;
-    renderDashboard();
-    scheduleOptimization();
+    if(optimizationTask===task){
+      optimizationTask=null;
+      renderDashboard();
+      scheduleOptimization();
+    }
   }
 }

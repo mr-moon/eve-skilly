@@ -121,10 +121,6 @@ fn handle(mut stream: TcpStream, host: &str, state: Arc<AppService>) -> Result<(
                 "text/javascript; charset=utf-8",
                 include_str!("../ui/tracking.js"),
             ),
-            "/goal-controls.js" => (
-                "text/javascript; charset=utf-8",
-                include_str!("../ui/goal-controls.js"),
-            ),
             "/app.js" => (
                 "text/javascript; charset=utf-8",
                 include_str!("../ui/app.js"),

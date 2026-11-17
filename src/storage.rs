@@ -131,6 +131,7 @@ pub struct PlanList {
 pub struct PlanStore {
     root: PathBuf,
     pub draft: Draft,
+    tracked_plans: BTreeMap<u64, String>,
 }
 impl PlanStore {
     pub fn new(root: PathBuf) -> Result<Self, String> {
@@ -145,7 +146,18 @@ impl PlanStore {
         } else {
             Draft::default()
         };
-        let mut store = Self { root, draft };
+        let tracking_path = root.join("tracked-plans.json");
+        let tracked_plans = if tracking_path.exists() {
+            serde_json::from_slice(&fs::read(tracking_path).map_err(|e| e.to_string())?)
+                .map_err(|e| format!("Не удалось прочитать привязки планов: {e}"))?
+        } else {
+            BTreeMap::new()
+        };
+        let mut store = Self {
+            root,
+            draft,
+            tracked_plans,
+        };
         let legacy = store.root.join("plan.json");
         if !draft_path.exists() && legacy.exists() && store.list()?.plans.is_empty() {
             let plan: Plan = serde_json::from_slice(&fs::read(legacy).map_err(|e| e.to_string())?)
@@ -168,6 +180,43 @@ impl PlanStore {
             return Err("Некорректный ID плана".into());
         }
         Ok(self.root.join("plans").join(format!("{id}.json")))
+    }
+    pub fn tracked_plans(&self) -> BTreeMap<u64, Value> {
+        self.tracked_plans
+            .iter()
+            .map(|(&character, id)| {
+                let name = self
+                    .read(id)
+                    .map(|record| record.workspace.plan.name)
+                    .unwrap_or_else(|_| "План недоступен".into());
+                (character, serde_json::json!({"id":id,"name":name}))
+            })
+            .collect()
+    }
+    pub fn track_plan(
+        &mut self,
+        character: u64,
+        plan: Option<&str>,
+        expected: Option<&str>,
+    ) -> Result<(), String> {
+        if self.tracked_plans.get(&character).map(String::as_str) != expected {
+            return Err(
+                "Отслеживаемый план изменился. Обновите список персонажей и повторите действие."
+                    .into(),
+            );
+        }
+        if let Some(id) = plan {
+            self.read(id)?;
+        }
+        let mut next = self.tracked_plans.clone();
+        if let Some(id) = plan {
+            next.insert(character, id.into());
+        } else {
+            next.remove(&character);
+        }
+        write_json(&self.root.join("tracked-plans.json"), &next)?;
+        self.tracked_plans = next;
+        Ok(())
     }
     pub fn read(&self, id: &str) -> Result<SavedPlan, String> {
         let record: SavedPlan = serde_json::from_slice(
@@ -393,6 +442,30 @@ mod tests {
             },
             ..Workspace::default()
         }
+    }
+    #[test]
+    fn tracking_is_per_character_persistent_and_independent_of_workspace() {
+        let dir = directory();
+        let mut store = PlanStore::new(dir.clone()).unwrap();
+        let a = store.save(None, workspace("A")).unwrap();
+        let b = store.save(None, workspace("B")).unwrap();
+        store.track_plan(1, Some(&a.id), None).unwrap();
+        store.track_plan(2, Some(&a.id), None).unwrap();
+        store.open(&b.id).unwrap();
+        assert_eq!(store.tracked_plans()[&1]["id"], a.id);
+        store.track_plan(1, Some(&b.id), Some(&a.id)).unwrap();
+        assert_eq!(store.tracked_plans()[&2]["id"], a.id);
+        assert!(store.track_plan(1, None, Some(&a.id)).is_err());
+        assert!(store.track_plan(2, Some("bad"), Some(&a.id)).is_err());
+        store.rename(&a.id, "Renamed".into()).unwrap();
+        let mut reopened = PlanStore::new(dir.clone()).unwrap();
+        assert_eq!(reopened.tracked_plans()[&1]["id"], b.id);
+        assert_eq!(reopened.tracked_plans()[&2]["name"], "Renamed");
+        reopened.track_plan(1, None, Some(&b.id)).unwrap();
+        let reopened = PlanStore::new(dir.clone()).unwrap();
+        assert!(!reopened.tracked_plans().contains_key(&1));
+        assert_eq!(reopened.tracked_plans()[&2]["id"], a.id);
+        fs::remove_dir_all(dir).unwrap();
     }
     #[test]
     fn desktop_recovery_merges_without_overwriting_current_profile() {

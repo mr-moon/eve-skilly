@@ -98,6 +98,15 @@ impl AppService {
         }
         Ok((workspace, items))
     }
+    fn character_state(&self) -> Result<Value, String> {
+        let mut state = self.characters.state()?;
+        state["tracked_plans"] = json!(self
+            .store
+            .lock()
+            .map_err(|e| e.to_string())?
+            .tracked_plans());
+        Ok(state)
+    }
     pub fn dispatch(&self, path: &str, body: Value) -> Result<Value, String> {
         match path {
             "/api/fits" => {
@@ -374,7 +383,24 @@ impl AppService {
                 let (workspace, items) = self.prepare_workspace(workspace)?;
                 Ok(json!({"workspace":workspace,"items":items}))
             }
-            "/api/characters" => self.characters.state(),
+            "/api/characters" => self.character_state(),
+            "/api/characters/track-plan" => {
+                #[derive(Deserialize)]
+                struct Input {
+                    id: u64,
+                    plan_id: Option<String>,
+                    expected_plan_id: Option<String>,
+                }
+                let input: Input = serde_json::from_value(body).map_err(|e| e.to_string())?;
+                self.characters.snapshot(input.id)?;
+                let mut store = self.store.lock().map_err(|e| e.to_string())?;
+                store.track_plan(
+                    input.id,
+                    input.plan_id.as_deref(),
+                    input.expected_plan_id.as_deref(),
+                )?;
+                Ok(json!({"tracked_plans":store.tracked_plans()}))
+            }
             "/api/characters/tracking" => {
                 let id = body["id"].as_u64().ok_or("Нет Character ID")?;
                 self.characters.snapshot(id)?;
@@ -426,7 +452,7 @@ impl AppService {
                     .and_then(Value::as_u64)
                     .ok_or("Нет Character ID")?;
                 self.characters.sync(id)?;
-                self.characters.state()
+                self.character_state()
             }
             "/api/characters/adapt" => {
                 #[derive(Deserialize)]

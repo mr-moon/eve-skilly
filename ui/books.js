@@ -40,9 +40,9 @@ async function fetchBookCosts(refresh=false){
 }
 function renderBookCosts(){
   const key=bookContextKey();$('books-open').disabled=!key;
-  if(!key){bookGeneration++;bookRequestKey='';bookReport=null;$('books-open').title='';$('book-cost-summary').textContent='—';$('book-cost-note').textContent=plan.goals.length?'Ожидаем оптимизированную очередь…':'Добавьте навыки в план';return;}
+  if(!key){bookGeneration++;bookRequestKey='';bookReport=null;$('books-open').title='';if(typeof retainDashboardView==='function'&&retainDashboardView())return;$('book-cost-summary').textContent='—';$('book-cost-note').textContent=plan.goals.length?'Ожидаем оптимизированную очередь…':'Добавьте навыки в план';return;}
   if(key===bookRequestKey)return;
-  bookReport=null;$('books-open').title='';$('book-cost-summary').textContent='Считаем…';$('book-cost-note').textContent='Jita 4-4';
+  bookReport=null;$('books-open').title='';if(!hasDashboardView){$('book-cost-summary').textContent='Считаем…';$('book-cost-note').textContent='Jita 4-4';}
   fetchBookCosts();
 }
 function initBooks(){

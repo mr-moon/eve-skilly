@@ -17,6 +17,8 @@ pub struct GroupMember {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PlanGroup {
     pub members: Vec<GroupMember>,
+    #[serde(default)]
+    pub level_overrides: BTreeMap<u32, u8>,
 }
 impl PlanGroup {
     pub fn fit_goals(&self) -> Vec<Requirement> {
@@ -60,6 +62,19 @@ impl PlanGroup {
                     positions.insert(goal.id, goals.len());
                     goals.push(goal.clone());
                 }
+            }
+        }
+        for (&id, &level) in &self.level_overrides {
+            if !(1..=5).contains(&level) {
+                return Err("Некорректный целевой уровень в группе".into());
+            }
+            if let Some(goal) = goals.iter_mut().find(|goal| goal.id == id) {
+                goal.level = level;
+            }
+        }
+        for requirement in self.fit_goals() {
+            if let Some(goal) = goals.iter_mut().find(|goal| goal.id == requirement.id) {
+                goal.level = goal.level.max(requirement.level);
             }
         }
         if goals.len() > 1000 {
@@ -111,7 +126,18 @@ pub fn compose(
             goals: record.workspace.plan.goals,
         });
     }
-    let group = PlanGroup { members };
+    let mut group = PlanGroup {
+        members,
+        level_overrides: workspace
+            .group
+            .as_ref()
+            .map(|group| group.level_overrides.clone())
+            .unwrap_or_default(),
+    };
+    let current_ids: BTreeSet<_> = group.goals()?.iter().map(|goal| goal.id).collect();
+    group
+        .level_overrides
+        .retain(|id, _| current_ids.contains(id));
     workspace.plan.goals = group.goals()?;
     workspace.plan.priority_goals = group.fit_goals();
     workspace.plan.name = name.into();
@@ -130,6 +156,50 @@ mod tests {
         model::{Plan, Skill},
         optimizer,
     };
+    #[test]
+    fn group_level_edits_survive_save_and_refresh_without_changing_sources() {
+        let dir = std::env::temp_dir().join(format!(
+            "skilly-group-overrides-{}-{}",
+            std::process::id(),
+            crate::storage::now_ms()
+        ));
+        let mut store = PlanStore::new(dir.clone()).unwrap();
+        let source = store
+            .save(
+                None,
+                Workspace {
+                    plan: Plan {
+                        goals: vec![Requirement { id: 3402, level: 5 }],
+                        ..Plan::default()
+                    },
+                    ..Workspace::default()
+                },
+            )
+            .unwrap();
+        let ids = vec![source.id.clone()];
+        let mut group = compose(&store, "Group", &ids, None, false).unwrap();
+        group
+            .group
+            .as_mut()
+            .unwrap()
+            .level_overrides
+            .insert(3402, 4);
+        let group = compose(&store, "Group", &ids, Some(group), false).unwrap();
+        assert_eq!(group.plan.goals[0].level, 4);
+        let saved = store.save(None, group).unwrap();
+        let reopened = PlanStore::new(dir.clone()).unwrap();
+        let group = reopened.read(&saved.id).unwrap().workspace;
+        let refreshed = compose(&reopened, "Group", &ids, Some(group), true).unwrap();
+        assert_eq!(refreshed.plan.goals[0].level, 4);
+        assert_eq!(
+            reopened.read(&source.id).unwrap().workspace.plan.goals[0].level,
+            5
+        );
+        let mut invalid = refreshed.group.unwrap();
+        invalid.level_overrides.insert(3402, 6);
+        assert!(invalid.goals().is_err());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
     #[test]
     fn group_fit_priorities_deduplicate_shared_skills_at_the_highest_required_level() {
         let members = (0..100)
@@ -152,7 +222,12 @@ mod tests {
                 goals: vec![],
             })
             .collect();
-        let group = PlanGroup { members };
+        let mut group = PlanGroup {
+            members,
+            level_overrides: BTreeMap::new(),
+        };
+        group.level_overrides.insert(3402, 1);
+        assert_eq!(group.goals().unwrap()[0].level, 4);
         let goals = group.fit_goals();
         assert_eq!(goals.len(), 1);
         assert_eq!(goals[0].id, 3402);
@@ -217,6 +292,7 @@ mod tests {
             goals,
         };
         let group = PlanGroup {
+            level_overrides: BTreeMap::new(),
             members: vec![
                 member("a", vec![Requirement { id: 3402, level: 5 }]),
                 member(

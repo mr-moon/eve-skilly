@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 function setup() {
-  const context = vm.createContext({Date, Set, Map, Math, Number,
+  const context = vm.createContext({Date, Set, Map, Math, Number,esc:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;'),
     items:{1:{name:'Int skill',skill:{rank:1,primary:0,secondary:4}},2:{name:'Per skill',skill:{rank:1,primary:1,secondary:3}}},
     result:{baseline:{rows:[{id:1,name:'Int skill',level:1},{id:1,name:'Int skill',level:2}]}},preview:null});
   vm.runInContext(fs.readFileSync('ui/tracking.js','utf8'),context);
@@ -53,4 +53,15 @@ test('learned levels use actual SP thresholds and do not count a partially train
   assert.equal(run('learnedPlanRows({trained:{1:1000}}).length'),1);
   assert.equal(run('learnedPlanRows({trained:{1:1415}}).length'),2);
   assert.equal(run('learnedPlanRows({}).length'),0);
+});
+test('action navigation distinguishes repeated implant events and individual books',()=>{
+  const run=setup();
+  run(`let targets=[{eventKind:'implant',eventDay:'1'},{eventKind:'implant',eventDay:'5'},{bookId:'42'}].map(dataset=>({dataset,classList:{add(){},remove(){}},setAttribute(){},focus(){this.focused=true;},scrollIntoView(){this.scrolled=true;}}));
+    function activeSchedule(){return {};}
+    let document={querySelectorAll:selector=>selector.includes('data-book-id')?[targets[2]]:selector.includes('data-event-kind')?targets.slice(0,2):[]};
+    function notify(){throw new Error('Missing target');}
+    jumpToTrackingAction({dataset:{trackingJump:'implant',actionDay:'5'}});`);
+  assert.equal(run('targets[1].scrolled'),true);assert.equal(run('targets[0].scrolled'),undefined);
+  run("jumpToTrackingAction({dataset:{trackingJump:'book',actionBook:'42'}})");
+  assert.equal(run('targets[2].scrolled'),true);assert.equal(run('targets[2].focused'),true);
 });
